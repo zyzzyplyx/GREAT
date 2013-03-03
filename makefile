@@ -1,5 +1,4 @@
-BASE_DIR = /home/chuck/github-repos/GREAT
-KENT_DIR = ${BASE_DIR}/kent/src
+KENT_DIR = ./kent/src
 KENT_LIBS =  $(KENT_DIR)/lib/$(MACHTYPE)/jkweb.a
 
 # summarize libs and includes needed, note that libs are order dependent
