@@ -22,7 +22,7 @@ void usage()
   "the number of genomic regions in the entire input set, and the number of genomic regions that hit one of the input\n"
   "regulatory domains.  P-value is printed to standard output.\n\n"
   "Usage:\n\n"
-  "calculateBetaP regdoms.in antigap.bed numTotalRegions numRegionsHit\n"
+  "calculateBetaP regdoms.in antigap.bed markerWgts.bed numTotalRegions\n"
   );
 }
 
@@ -135,10 +135,16 @@ double betai(double a, double b, double x)
 		return 1.0-bt*betacf(b,a,1.0-x)/b;
 }
 
-double getBetaPval(int n, int a, double p)
+double getBetaPval(int n, double alpha, double p)
 {
-	if (a == 0) return 1;
-	else return betai(a, n-a+1, p);
+	double beta = n-alpha+1;
+
+	printf("alpha: %f\n", alpha);
+	printf("beta:  %f\n", beta);
+	printf("x:     %f\n", p);
+
+	if (alpha == 0) return 1;
+	else return betai(alpha, beta, p);
 }
 
 void calculateBetaP(char* regdomFn, char* antigapFn, char* markerWgtsFn, int totalRegions)
@@ -153,6 +159,9 @@ void calculateBetaP(char* regdomFn, char* antigapFn, char* markerWgtsFn, int tot
 	struct bed* antigaps = bedLoadAll(antigapFn);
 	long totalNonGapBases = getTotalNonGapBases(antigaps);
 	long annotatedNonGapBases = getAnnotatedNonGapBases(ranges, antigaps);
+
+	printf("totalNonGapBases: %u\n", totalNonGapBases);
+	printf("annotatedNonGapBases: %u\n", annotatedNonGapBases);
 
 	double annotationWeight = (double)annotatedNonGapBases/(double)totalNonGapBases;
 
@@ -173,7 +182,7 @@ int main(int argc, char *argv[])
 {
 	/* Get all inputs */
 	optionInit(&argc, argv, options);
-	if (argc != 6) usage();
+	if (argc != 5) usage();
 
 	char *regdomFn, *antigapFn, *markerWgtsFn;
 	int totalRegions;
