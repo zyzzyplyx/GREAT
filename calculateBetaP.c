@@ -22,25 +22,13 @@ void usage()
   "the number of genomic regions in the entire input set, and the number of genomic regions that hit one of the input\n"
   "regulatory domains.  P-value is printed to standard output.\n\n"
   "Usage:\n\n"
-  "calculateBetaP regdoms.in antigap.bed markerWgts.bed numTotalRegions\n"
+  "calculateBetaP regdoms.in antigap.bed sumOfWeights numTotalRegions\n"
   );
 }
 
 struct optionSpec options[] = {
 	{NULL, 0}
 };
-
-// this function sums over all the weights (in the first column) of the markerWgts file
-//  ** note: this is a hack on the chrom field in a normal .bed file
-double getAlpha(struct bed *markerWgts) {
-	double alpha = 0;
-  struct bed* currMarker;
-	for (currMarker = markerWgts; currMarker != NULL; currMarker = currMarker->next) {
-		alpha += atof(currMarker->chrom);
-	}
-  return alpha;
-}
-
 
 struct genomeRangeTree* getRangeTreeOfRegdoms(struct regdom* regdoms)
 {
@@ -147,7 +135,7 @@ double getBetaPval(int n, double alpha, double p)
 	else return betai(alpha, beta, p);
 }
 
-void calculateBetaP(char* regdomFn, char* antigapFn, char* markerWgtsFn, int totalRegions)
+void calculateBetaP(char* regdomFn, char* antigapFn, double sumOfWeights, int totalRegions)
 /* Calculate binomial p-value of enrichment based on regulatory domains and regions hit */
 {
 	struct regdom* regdoms = readInitializedRegdomFile(regdomFn);
@@ -160,13 +148,12 @@ void calculateBetaP(char* regdomFn, char* antigapFn, char* markerWgtsFn, int tot
 	long totalNonGapBases = getTotalNonGapBases(antigaps);
 	long annotatedNonGapBases = getAnnotatedNonGapBases(ranges, antigaps);
 
-	printf("totalNonGapBases: %u\n", totalNonGapBases);
-	printf("annotatedNonGapBases: %u\n", annotatedNonGapBases);
+	printf("totalNonGapBases: %lu\n", totalNonGapBases);
+	printf("annotatedNonGapBases: %lu\n", annotatedNonGapBases);
 
 	double annotationWeight = (double)annotatedNonGapBases/(double)totalNonGapBases;
 
-  struct bed* markerWgts = bedLoadAll(markerWgtsFn);
-  double alpha = getAlpha(markerWgts);
+  double alpha = sumOfWeights;
 
 	double betaP = getBetaPval(totalRegions, alpha, annotationWeight);
 
@@ -174,7 +161,6 @@ void calculateBetaP(char* regdomFn, char* antigapFn, char* markerWgtsFn, int tot
 
 	regdomFreeList(&regdoms);
 	bedFreeList(&antigaps);
-	bedFreeList(&markerWgts);
 	genomeRangeTreeFree(&ranges);
 }
 
@@ -184,14 +170,15 @@ int main(int argc, char *argv[])
 	optionInit(&argc, argv, options);
 	if (argc != 5) usage();
 
-	char *regdomFn, *antigapFn, *markerWgtsFn;
+	char *regdomFn, *antigapFn;
 	int totalRegions;
+	double sumOfWeights;
 	regdomFn = argv[1];
 	antigapFn = argv[2];
-	markerWgtsFn = argv[3];
+	sumOfWeights = atof(argv[3]);
 	totalRegions = intExp(argv[4]);
 
-	calculateBetaP(regdomFn, antigapFn, markerWgtsFn, totalRegions);
+	calculateBetaP(regdomFn, antigapFn, sumOfWeights, totalRegions);
 
 	optionFree();
 
