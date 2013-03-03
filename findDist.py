@@ -1,5 +1,18 @@
 #!/usr/bin/env python
-#Usage: ./findDist.py overlapFile outputFile
+#
+# Usage: ./findDist.py overlapFile outputFile
+#
+# Takes a list of overlapping "arrows" and their corresponding region,
+# calculates the weight for each overlap. Uses a normal distribution centered
+# at the location of the TSS with std dev of 333,333 bp.
+#
+# overlapFile must follow this format:
+#|<--------------Arrow Information--------------->|<-------RegDom Info---------->| Gene Name |  GeneID | strand | TSS Location |
+#| chr5    60663738        60663788        SRF.1  | chr5   59031713    61031713  |  DEPDC1B  |  19474  |    -   |  60031713    |
+#
+# outputFile will be in this format:
+# | “Arrow” name (e.g. SRF.1) | Gene Name | Gene ID (numerical ID) | Weight (in the range of 0 to 1) |
+# |           SRF.1           |  DEPDC1B  |        19474           |          0.165703737676         |
 
 import os, sys, scipy.stats
 
