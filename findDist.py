@@ -25,7 +25,7 @@ w_max = dist.pdf(0)
 
 for line in overlap:
     line = line.split()
-    arrowPos = int(line[1])
+    arrowPos = (int(line[1]) + int(line[2]))/2
     lociCenter = int(line[10])
 
     distance = abs(lociCenter - arrowPos)
