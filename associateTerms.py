@@ -6,8 +6,8 @@ import sys
 #Usage: ./associateTerms.py dart_weights_file output_file [gene to term files]
 
 # Output format:
-# | term id# |  gene name | arrow |      weight    |
-# |   7154   |   DEPDC1B  | SRF.1 | 0.165703737676 |
+# | term id# |  gene name | arrow |      weight    |  term coverage % (between 0 and 1) |
+# |   7154   |   DEPDC1B  | SRF.1 | 0.165703737676 |           0.00257426987979         |
 
 class Dart:
 
