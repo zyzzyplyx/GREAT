@@ -1,0 +1,34 @@
+#!/bin/bash
+
+printf "\nThis script will run maxWeights.py on all files in the this directory of\n"
+printf "of the form tss.*\n\n"
+
+FILES=`ls -1 | sed -n '/^tss\.*/p'`
+FILES=`echo $FILES`
+
+printf "I found the files:\n"
+for file in $FILES
+do
+	echo $file
+done
+printf "\n"
+
+printf "Please specify values for each of the following:\n"
+printf "Parent directory of maxWeights.py: "
+read MW_PATH
+MW_PATH=`echo $MW_PATH | sed 's/\\$//'`
+
+printf "Mean: "
+read MEAN
+
+printf "Standard Deviation: "
+read SD
+
+printf "Cutoff: "
+read CUTOFF
+
+for file in $FILES
+do
+	printf "\nRunning maxWeight.py on $file ...\n"
+	time ${MW_PATH}/maxWeight.py $file $MEAN $SD $CUTOFF
+done

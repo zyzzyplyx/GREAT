@@ -1,0 +1,23 @@
+#!/bin/bash
+
+printf "\nHow many random test files would you like? "
+read nFiles
+printf "\nHow many random numbers should I place in each file? "
+read nRandNumbers
+printf "\nWhat is the largest random number you want to see? "
+read randNumLimit
+printf "\nWhere would you like to save them? "
+read saveLocation
+saveLocation=`echo $saveLocation | sed 's/\\$//'`
+
+if [[ ! -d $saveLocation ]]
+then
+	mkdir $saveLocation
+fi
+cd $saveLocation
+
+for i in `seq $nFiles`
+do
+	printf "\nGenerating $saveLocation/tss.randTest$i ...\n"
+	shuf -i 1-$randNumLimit | head -n$nRandNumbers > tss.randTest$i
+done

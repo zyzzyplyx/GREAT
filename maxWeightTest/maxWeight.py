@@ -12,7 +12,6 @@ class NormWgt:
         self.transcriptionStartSites = transcriptionStartSites
         self.cutOff = cutOff
         self.wgtDistribution = self.getWgtDistribution(mean, sd, cutOff)
-        print repr(self.wgtDistribution) + "\n\n"
 
     def getSiteWgtTotal(self, site):
         wgtTotal = 0
@@ -39,9 +38,73 @@ def getAllNonZeroMarkers(transcriptionStartSites, CUTOFF):
 
     return markers
 
+### this is an idea that is poorly formed. it feels like a waste to look at
+## every base when looking for the max
+#
+#def getAllCandidateMarkers(transcriptionStartSites, CUTOFF):
+#    transcriptionStartSites.sort()
+#    lastSite = transcriptionStartSites[-1]
+#    firstSite = transcriptionStartSites[0]
+#    lastIndex = len(transcriptionStartSites) - 1
+#    
+#    candidateMarkers = []
+#    beforeIndex = 0
+#    for i in range(max(0,firstSite-CUTOFF), lastSite+CUTOFF+1):
+#        if (beforeIndex <= lastIndex and i == transcriptionStartSites[beforeIndex]):
+#            beforeIndex += 1
+#            candidateMarkers.append(i)
+#        else:
+#            if (beforeIndex == 0):
+#                c = int(transcriptionStartSites[beforeIndex] - i <= CUTOFF)
+#                if (beforeIndex + 1 <= lastIndex):
+#                    d = int(transcriptionStartSites[beforeIndex+1] - i <= CUTOFF)
+#                else:
+#                    d = 0
+#                if (c+d >= 2):
+#                    candidateMarkers.append(i)
+#            elif (beforeIndex == 1):
+#                b = int(i - transcriptionStartSites[beforeIndex-1] <= CUTOFF)
+#                c = int(transcriptionStartSites[beforeIndex] - i <= CUTOFF)
+#                if (beforeIndex + 1 <= lastIndex):
+#                    d = int(transcriptionStartSites[beforeIndex+1] - i <= CUTOFF)
+#                else:
+#                    d = 0
+#                if (b+c+d >= 2):
+#                    candidateMarkers.append(i)
+#            elif (beforeIndex == lastIndex):
+#                if (beforeIndex - 2 >= 0):
+#                    a = int(i - transcriptionStartSites[beforeIndex-2] <= CUTOFF)
+#                else:
+#                    a = 0
+#                if (beforeIndex - 1 >= 0):
+#                    b = int(i - transcriptionStartSites[beforeIndex-1] <= CUTOFF)
+#                else:
+#                    b = 0
+#                c = int(transcriptionStartSites[beforeIndex] - i <= CUTOFF)
+#                if (a+b+c >= 2):
+#                    candidateMarkers.append(i)
+#            elif (beforeIndex > lastIndex):
+#                if (beforeIndex - 2 >= 0):
+#                    a = int(transcriptionStartSites[beforeIndex-2] - i <= CUTOFF)
+#                else:
+#                    a = 0
+#                b = int(transcriptionStartSites[beforeIndex-1] - i <= CUTOFF)
+#                if (a+b >= 2):
+#                    candidateMarkers.append(i)
+#            else:
+#                a = int(i - transcriptionStartSites[beforeIndex-2] <= CUTOFF)
+#                b = int(i - transcriptionStartSites[beforeIndex-1] <= CUTOFF)
+#                c = int(transcriptionStartSites[beforeIndex] - i <= CUTOFF)
+#                d = int(transcriptionStartSites[beforeIndex+1] - i <= CUTOFF)
+#                if (a+b+c+d >= 2):
+#                    candidateMarkers.append(i)
+#
+#    return candidateMarkers
+
 def findMaxNormPDFOverlap(MEAN, SD, CUTOFF, transcriptionStartSites):
     normWgt = NormWgt(MEAN, SD, CUTOFF, transcriptionStartSites)
     nonZeroMarkers = getAllNonZeroMarkers(transcriptionStartSites, CUTOFF)
+    #nonZeroMarkers = getAllCandidateMarkers(transcriptionStartSites, CUTOFF)
 
     maxWgt = 0
     for marker in nonZeroMarkers:
