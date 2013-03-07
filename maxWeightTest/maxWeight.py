@@ -4,13 +4,9 @@
 
 import sys, scipy.stats, math, collections
 
-MEAN = 0
-SD = 1
-CUTOFF = 3
-
 Result = collections.namedtuple('Result', ['maxWgt', 'maxWgtMarker'])
 
-class NormPull:
+class NormWgt:
 
     def __init__(self, mean, sd, cutOff, transcriptionStartSites):
         self.transcriptionStartSites = transcriptionStartSites
@@ -18,16 +14,16 @@ class NormPull:
         self.wgtDistribution = self.getWgtDistribution(mean, sd, cutOff)
         print repr(self.wgtDistribution) + "\n\n"
 
-    def getSitePullTotal(self, site):
-        pullTotal = 0
+    def getSiteWgtTotal(self, site):
+        wgtTotal = 0
         for tss in self.transcriptionStartSites:
             if (math.fabs(site - tss) <= self.cutOff):
-                pullTotal += self.getSitePull(site, tss)
+                wgtTotal += self.getSiteWgt(site, tss)
 
-        return pullTotal
+        return wgtTotal
 
-    def getSitePull(self, site, tss):
-        return self.wgtDistribution[self.cutOff-(tss-site)]
+    def getSiteWgt(self, site, tss):
+        return self.wgtDistribution[self.cutOff-(tss-site+1)]
 
     def getWgtDistribution(self, mean, sd, cutOff):
         wgt = scipy.stats.norm(mean, sd)
@@ -44,12 +40,12 @@ def getAllNonZeroMarkers(transcriptionStartSites, CUTOFF):
     return markers
 
 def findMaxNormPDFOverlap(MEAN, SD, CUTOFF, transcriptionStartSites):
-    normPull = NormPull(MEAN, SD, CUTOFF, transcriptionStartSites)
+    normWgt = NormWgt(MEAN, SD, CUTOFF, transcriptionStartSites)
     nonZeroMarkers = getAllNonZeroMarkers(transcriptionStartSites, CUTOFF)
 
     maxWgt = 0
     for marker in nonZeroMarkers:
-        markerWgt = normPull.getSitePullTotal(marker)
+        markerWgt = normWgt.getSiteWgtTotal(marker)
         if (markerWgt > maxWgt):
             maxWgt = markerWgt
             maxWgtMarker = marker
@@ -66,6 +62,10 @@ def readPositions(fstr):
 
 def main():
     transcriptionStartSites = readPositions(sys.argv[1])
+    MEAN = float(sys.argv[2])
+    SD = float(sys.argv[3])
+    CUTOFF = int(sys.argv[4])
+
     r = findMaxNormPDFOverlap(MEAN, SD, CUTOFF, transcriptionStartSites)
     print repr(r.maxWgt) + "\t" + repr(r.maxWgtMarker)
 
