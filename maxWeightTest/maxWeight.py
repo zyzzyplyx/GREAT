@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-#Usage: ./maxWeight.py transcriptionStartSites
+#Usage: ./maxWeight.py transcriptionStartSites MEAN SD CUTOFF
 
 import sys, scipy.stats, math, collections
 
@@ -23,7 +23,7 @@ class NormWgt:
         return wgtTotal
 
     def getSiteWgt(self, site, tss):
-        return self.wgtDistribution[self.cutOff-(tss-site+1)]
+        return self.wgtDistribution[self.cutOff-(tss-site)]
 
     def getWgtDistribution(self, mean, sd, cutOff):
         wgt = scipy.stats.norm(mean, sd)
