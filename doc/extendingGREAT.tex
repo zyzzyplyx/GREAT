@@ -1,0 +1,137 @@
+% LaTeX-2e document, 41 pp, pdfTeX, Version 3.1415926-1.40.10
+
+\documentclass{article}
+% Packages
+\usepackage[T1]{fontenc}
+\usepackage[hyphens]{url}
+\usepackage[bookmarks]{hyperref}
+\hypersetup{
+colorlinks,
+citecolor=black,
+filecolor=black,
+linkcolor=green,
+urlcolor=green
+}
+% \usepackage[latin1]{inputenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{enumerate}
+\usepackage{cite}
+
+% listings settings
+\usepackage{textcomp} % makes upquote work
+\usepackage{listings}
+\lstset{
+  float,
+  title={\ttfamily\small Sage}, % title of boxes
+  gobble=3, % adjusts the amount of space on the left margin
+  language=Python,
+  basicstyle=\ttfamily\footnotesize,
+  %numbers=left,
+  %numberstyle=\tiny,
+  %numbersep=5pt,
+  frame=single,
+  tabsize=2,
+  breaklines=true, % fixes lines that runover the box
+  upquote=true, % makes quotes look correct for sage
+}
+
+% Definitions
+\def\rrr{\mathbb{R}}
+\def\zzz{\mathbb{Z}}
+\def\fff{\mathbb{F}}
+\def\nnn{\mathbb{N}}
+\def\Chi{\raisebox{2pt}{$\chi$}}
+\newcommand{\q}{\symbol{39}}
+
+\title{Extending GREAT with Beta distribution p-values and spatial
+autocorrelation statistics}
+\author{Charles Celerier (cceleri), Yifei Men (ymen),\\
+Ahmed Bou-Rabee (bourabee), Andrew Stiles (aostiles),\\
+Steven Lee (slee2010), and Nicholas Damien McGee (ndmcgee)}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+  This paper presents two extensions to GREAT. The first extension is caculating
+  weights for arrows based on their proximity to the center of the given
+  regulatory domains for each term. This weighting allows us to calculate a
+  p-value from the regularized incomplete beta function $I_x(\alpha, \beta)$
+  where $\alpha~=~\text{sum of the weights assigned to all arrows}$ and
+  $\beta~=~(\text{the maximum possible sum of weights}) - \alpha$. The second
+  extension is adding spatial autocorrelation statistics. We include three of
+  these statistics in our project: (1) the Getis-Ord General G global statistic, (2)
+  Moran's I global statistic, and (3) Getis-Ord Gi* local statistic.
+\end{abstract}
+
+\section{Weight function}\label{sec:weightFunction}
+Each term defines a set of transcription start sites on a genome (hg18 or mm9).
+Both of our extensions to GREAT require weights to be assigned to each
+arrow-TSS pair. Let's define the absolute distance function
+$d:\nnn\times\nnn\rightarrow\zzz$ as:
+\[
+d(A_p,TSS_p) = TSS_p - A_p.
+\]
+We assign weights to each arrow-TSS pair based on a normal distribution with
+mean $\mu$ and standard deviation $\sigma$ within 1Mb of the TSS and 0
+otherwise. More formally, we can define a weight function
+$W:\nnn\times\nnn\rightarrow[0,1]$ as:
+\[
+W(A_p,TSS_p) =
+  \begin{cases}
+    \frac{1}{\sigma\sqrt{2\pi}}e^{-\frac{(d(A_p, TSS_p)-\mu)^2}{2\sigma^2}} &
+    \text{if\quad} d(A_p, TSS_p) \leq 10^6 \\
+    0 & \text{otherwise}
+  \end{cases}
+\]
+where
+\[
+\mu=0 \text{\qquad and\qquad} \sigma = \frac{10^6}{3}.
+\]
+These weights are assigned by using the python script {\tt findDist.py}.
+
+\section{Beta distribution}
+Given an assignment of weights for each arrow-TSS pair, we can calculate a
+p-value from the regularized incomplete beta function $I_x(\alpha, \beta)$.
+We decided to define $\alpha$ and $\beta$ as follows:
+\[
+\alpha\quad = \sum_{A_p\in\text{arrows}}\sum_{TSS_p\in\text{TSSs}}W(A_p,TSS_p)
+\]
+\[
+\beta\;=\;\#\text{arrows }\cdot\text{max}\{W(A_p,TSS_p) :
+A_p\in\text{arrows}\text{ and } TSS_p\in\text{TSSs}\} - \alpha
+\]
+The value for $x$ is less clear. We will try a few ideas:
+\[
+x\;=\;\frac{\text{sum of all weights for the queried term}}{\text{sum of all weights for
+all terms}}
+\]
+\[
+x\;=\;\frac{\text{size of the regulatory domain}}{\text{size of the genome}}
+\]
+\[
+x\;=\;\frac{\text{size of regulatory domain with weight at least the mean
+weight}}{\text{size of the genome}}
+\]
+The regularized incomplete beta function was already implemented in the GREAT
+source code. We will use that code for this statistic.
+
+\section{Spatial autocorrelation statistics}
+We would like to implement a type of hot spot analysis for which regulatory
+domains had the largest impact on the p-value (binomial or beta) for the markers
+on each term. The three spatial autocorrelation statistis we found can be found
+\href{http://www.sce.lsu.edu/cego/documents/reviews/geospatial/spatial_autocorrelation.pdf}{here}.
+
+Here are the null hypotheses for the global statistics:
+\begin{enumerate}[1.]
+  \item Getis-Ord General G: ``there is not spatial clustering of the arrow''
+  \item Moran's I: ``there is not spatial clustering of the arrow associated
+    with the regulatory domains''
+\end{enumerate}
+Getis-Ord Gi* is a local statistic that will indicate clustering of arrows with
+low and high weights. This could be a useful mechanism for spotting patterns in
+the arrows submitted to GREAT.
+\end{document}

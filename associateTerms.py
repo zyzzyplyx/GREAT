@@ -1,7 +1,13 @@
+#!/usr/bin/env python
+
 import collections
 import re
 import sys
 #Usage: ./associateTerms.py dart_weights_file output_file [gene to term files]
+
+# Output format:
+# | term id# |  gene name | arrow |      weight    |
+# |   7154   |   DEPDC1B  | SRF.1 | 0.165703737676 |
 
 class Dart:
 

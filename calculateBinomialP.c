@@ -109,7 +109,6 @@ double betacf(double a, double b, double x)
 	return h;
 }
 
-
 double betai(double a, double b, double x)
 // Returns the incomplete beta function Ix(a, b). 
 {
@@ -126,7 +125,6 @@ double betai(double a, double b, double x)
 	else // Use continued fraction after making the symmetry transformation. 
 		return 1.0-bt*betacf(b,a,1.0-x)/b;
 }
-
 
 double getBinomPval(int n, int k, double p)
 {

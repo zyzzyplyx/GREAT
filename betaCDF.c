@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
 	beta = atof(argv[2]);
 	x = atof(argv[3]);
 
-	printf("%f\n", betai(alpha, beta, p));
+	printf("%f\n", betai(alpha, beta, x));
 
 	optionFree();
 

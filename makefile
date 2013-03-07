@@ -11,9 +11,9 @@ LDFLAGS=
 
 RDOBJECTS = createRegulatoryDomains.o regdom.o
 POBJECTS = calculateBinomialP.o regdom.o
-BETAPOBJECTS = calculateBetaP.o regdom.o
+BETAPOBJECTS = betaCDF.o
 
-all: createRegulatoryDomains calculateBinomialP calculateBetaP
+all: createRegulatoryDomains calculateBinomialP betaCDF
 
 createRegulatoryDomains: $(RDOBJECTS)
 	$(CC) $(LDFLAGS) ${COPT} -o $@ $(RDOBJECTS) ${LIBS}
@@ -21,13 +21,13 @@ createRegulatoryDomains: $(RDOBJECTS)
 calculateBinomialP: $(POBJECTS)
 	$(CC) $(LDFLAGS) ${COPT} -o $@ $(POBJECTS) ${LIBS}
 	
-calculateBetaP: $(BETAPOBJECTS)
+betaCDF: $(BETAPOBJECTS)
 	$(CC) $(LDFLAGS) ${COPT} -o $@ $(BETAPOBJECTS) ${LIBS}
 
 clean:
-	rm -f *.o createRegulatoryDomains calculateBinomialP calculateBetaP
+	rm -f *.o createRegulatoryDomains calculateBinomialP betaCDF
 
 regdom.o:	regdom.h
 createRegulatoryDomains.o:	regdom.h
 calculateBinomialP.o:	regdom.h
-calculateBetaP.o: regdom.h
+betaCDF.o:
