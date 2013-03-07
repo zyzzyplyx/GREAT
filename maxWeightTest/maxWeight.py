@@ -5,8 +5,8 @@
 import sys, scipy.stats, math, collections
 
 MEAN = 0
-SD = 10**1/3
-CUTOFF = 10**1
+SD = 1
+CUTOFF = 3
 
 Result = collections.namedtuple('Result', ['maxWgt', 'maxWgtMarker'])
 
@@ -16,6 +16,7 @@ class NormPull:
         self.transcriptionStartSites = transcriptionStartSites
         self.cutOff = cutOff
         self.wgtDistribution = self.getWgtDistribution(mean, sd, cutOff)
+        print repr(self.wgtDistribution) + "\n\n"
 
     def getSitePullTotal(self, site):
         pullTotal = 0
@@ -60,7 +61,7 @@ def readPositions(fstr):
     f = open(fstr)
     for line in f:
         tss.append(int(line))
-        
+
     return tss
 
 def main():
