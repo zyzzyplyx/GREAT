@@ -1,6 +1,6 @@
 import sys
 import os
-import maxWeight #Our own module that computes the maximum weight of a given set of transcription start sites
+import WeightedRegDom as wrd #Our own module that computes the maximum weight of a given set of transcription start sites
 
 inFileName = sys.argv[1]
 outFileName = sys.argv[2]
@@ -35,9 +35,10 @@ os.system("sort -g -u temp.txt > tss.txt") #Sorts them then uniques
 tssFile = open("tss.txt",'w')
  
 #TO DO: Update this sequence to be the correct
-transcriptionStartSites = maxWeight.readPositions(tssFile)
-r = maxWeight.findMaxNormPDFOverlap(MEAN, SD, CUTOFF, transcriptionStartSites)
-N = maxWeight.repr(r.maxWgt) 
+transcriptionStartSites = wrd.readPositions(tssFile)
+wgtRegDom = wrd.WeightedRegDom(transcriptionStartSites, cutoff=CUTOFF, mean=MEAN, sd=SD)
+r = wgtRegDom.maxArrowWgt()
+N = wrd.repr(r.maxWgt) 
 
 outFile.write("%f \t %f \t %f\n",X,weightSum, N)
 inFile.close()

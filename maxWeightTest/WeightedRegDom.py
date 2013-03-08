@@ -70,16 +70,18 @@ class WeightedRegDom:
         """Return tss array."""
         return self.transcriptionStartSites
 
+    # note that this algorithm is okay because transcriptionStartSites is sorted
     def maxArrowWgt(self):
         """Return namedtuple containing the max total weight and where it occurs."""
-        nonZeroArrows = self.getAllNonZeroArrows()
-    
         maxWgt = 0
-        for arrow in nonZeroArrows:
-            arrowWgt = self.getArrowWgt(arrow)
-            if (arrowWgt > maxWgt):
-                maxWgt = arrowWgt
-                maxWgtMarker = arrow
+        for tss in self.transcriptionStartSites:
+            for i in range(-self.cutOff, self.cutOff+1):
+                if (arrow < tss + i):  # arrow only increases
+                    arrow = tss + i
+                    arrowWgt = self.getArrowWgt(arrow)
+                    if (arrowWgt > maxWgt):
+                        maxWgt = arrowWgt
+                        maxWgtMarker = arrow
     
         return _Result(maxWgt, maxWgtMarker)
 
@@ -113,7 +115,7 @@ class WeightedRegDom:
         maxWgt = wgt.pdf(mean)
         return [wgt.pdf(i)/maxWgt for i in range(-cutOff, cutOff + 1)]
 
-def _readPositions(fstr):
+def readPositions(fstr):
     """Read a file of numbers into an array"""
     tss = []
     f = open(fstr)
