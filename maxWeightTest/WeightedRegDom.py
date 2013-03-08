@@ -20,7 +20,7 @@ from scipy.stats import norm as _norm
 from math import fabs as _fabs
 from collections import namedtuple
 
-_Result = namedtuple('Result', ['maxWgt', 'maxWgtMarker'])
+_Result = namedtuple('Result', ['maxWgt', 'maxWgtArrow'])
 
 class WeightedRegDom:
 
@@ -74,6 +74,7 @@ class WeightedRegDom:
     def maxArrowWgt(self):
         """Return namedtuple containing the max total weight and where it occurs."""
         maxWgt = 0
+        arrow = 0
         for tss in self.transcriptionStartSites:
             for i in range(-self.cutOff, self.cutOff+1):
                 if (arrow < tss + i):  # arrow only increases
@@ -81,9 +82,9 @@ class WeightedRegDom:
                     arrowWgt = self.getArrowWgt(arrow)
                     if (arrowWgt > maxWgt):
                         maxWgt = arrowWgt
-                        maxWgtMarker = arrow
+                        maxWgtArrow = arrow
     
-        return _Result(maxWgt, maxWgtMarker)
+        return _Result(maxWgt, maxWgtArrow)
 
     def getArrowWgt(self, arrow):
         """Return the total weight assigned to an arrow."""
@@ -145,7 +146,7 @@ if __name__ == '__main__':
         parser.print_usage()
         sys.exit(1)
 
-    tss    = _readPositions(args[0])
+    tss    = readPositions(args[0])
     cutOff = int(args[1])
     mean   = float(args[2])
     sd     = float(args[3])
@@ -153,5 +154,5 @@ if __name__ == '__main__':
     wgtRegDom = WeightedRegDom(tss, cutOff, mean, sd)
     r = wgtRegDom.maxArrowWgt()
 
-    print repr(r.maxWgt) + "\t" + repr(r.maxWgtMarker)
+    print repr(r.maxWgt) + "\t" + repr(r.maxWgtArrow)
 
