@@ -14,7 +14,7 @@ done
 printf "\n"
 
 printf "Please specify values for each of the following:\n"
-printf "Parent directory of maxWeights.py: "
+printf "Parent directory of WeightedRegDom.py: "
 read MW_PATH
 MW_PATH=`echo $MW_PATH | sed 's/\\$//'`
 
@@ -29,6 +29,6 @@ read CUTOFF
 
 for file in $FILES
 do
-	printf "\nRunning maxWeight.py on $file ...\n"
-	time ${MW_PATH}/maxWeight.py $file $MEAN $SD $CUTOFF
+	printf "\nRunning WeightedRegDom.py on $file ...\n"
+	time ${MW_PATH}/WeightedRegDom.py $file $CUTOFF $MEAN $SD 
 done
