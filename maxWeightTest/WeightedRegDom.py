@@ -63,15 +63,15 @@ class WeightedRegDom:
         self.wgtDistribution = self._initWgtDistribution(mean, sd, cutOff)
 
     def getWgtDistribution(self):
-        """Return array of weight values for each base inside the cutOff for a tss"""
+        """Return array of weight values for each base inside the cutOff for a tss."""
         return self.wgtDistribution
 
     def getTranscriptionStartSites(self):
-        """Return tss array"""
+        """Return tss array."""
         return self.transcriptionStartSites
 
     def maxArrowWgt(self):
-        """Return namedtuple containing the max total weight and where it occurs"""
+        """Return namedtuple containing the max total weight and where it occurs."""
         nonZeroArrows = self.getAllNonZeroArrows()
     
         maxWgt = 0
@@ -84,7 +84,7 @@ class WeightedRegDom:
         return _Result(maxWgt, maxWgtMarker)
 
     def getArrowWgt(self, arrow):
-        """Return the total weight assigned to an arrow"""
+        """Return the total weight assigned to an arrow."""
         wgt = 0
         for tss in self.transcriptionStartSites:
             if (_fabs(arrow - tss) <= self.cutOff):
@@ -93,7 +93,7 @@ class WeightedRegDom:
         return wgt
 
     def getAllNonZeroArrows(self):
-        """Return all arrows which get a weight from a tss"""
+        """Return all arrows which get a weight from a tss."""
         lastSite = self.transcriptionStartSites[-1]
         
         arrows = []
@@ -103,12 +103,12 @@ class WeightedRegDom:
         return arrows
 
     def _getRelativeArrowWgt(self, arrow, tss):
-        """Return the weight for a particular arrow relative to a tss"""
+        """Return the weight for a particular arrow relative to a tss."""
         return self.wgtDistribution[self.cutOff-(tss-arrow)]
 
 
     def _initWgtDistribution(self, mean, sd, cutOff):
-        """Initialize array of weight values for each base inside the cutOff for a tss"""
+        """Initialize array of weight values for each base inside the cutOff for a tss."""
         wgt = _norm(mean, sd)
         maxWgt = wgt.pdf(mean)
         return [wgt.pdf(i)/maxWgt for i in range(-cutOff, cutOff + 1)]
