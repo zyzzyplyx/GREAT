@@ -1,19 +1,29 @@
 #!/usr/bin/env python
 
 __doc__ ="""
+GREATx is an extension of the GREAT functionality. This module extends GREAT
+by assigning weights to hits on the regulatory domains rather than counting
+each hit equally. The classes and methods in this module use this model of
+assigning weights to hits on the regulatory domain to calculate statistics.
+
 Weights are determined for each arrow in the regulatory domain by overlapping
 normal distributions centered at each transcription start site. The regulatory
 domain is defined as all bases within the defined cut-off distance of a single
 transcription start site. Each instance of :WeightedRegDom: has the following
 attributes:
+
     - sorted array of transcription start sites
     - cut-off distance to define the regulatory domain
     - mean value for the weight function (usually 0)
     - standard deviation for the weight function
 
-With these attributes each instance of :WeightedRegDom: can compute the weight
+With these attributes, each instance of :WeightedRegDom: can compute the weight
 assigned to any arrow on the genome and determine the maximum weight
 assignment in the regulatory domain.
+
+The different statistics included in this module are a Beta distribution
+p-value, and the Gi-local, G general global, and Moran's I spatial
+autocorrelation statistics.
 """
 
 from scipy.stats import norm as _norm
@@ -73,6 +83,11 @@ class WeightedRegDom:
     # note that this algorithm is okay because transcriptionStartSites is sorted
     def maxArrowWgt(self):
         """Return namedtuple containing the max total weight and where it occurs."""
+
+        # only do this hard calculation once!
+        if (self.maxWgt):
+            return _Result(self.maxWgt, self.maxWgtArrow)
+
         maxWgt = 0
         arrow = 0
         for tss in self.transcriptionStartSites:
@@ -84,7 +99,7 @@ class WeightedRegDom:
                         maxWgt = arrowWgt
                         maxWgtArrow = arrow
     
-        return _Result(maxWgt, maxWgtArrow)
+        return _Result(self.maxWgt, self.maxWgtArrow)
 
     def getArrowWgt(self, arrow):
         """Return the total weight assigned to an arrow."""
@@ -124,6 +139,7 @@ def readPositions(fstr):
         tss.append(int(line))
 
     return tss
+
 
 if __name__ == '__main__':
     import sys

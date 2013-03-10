@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 #
+
 # Usage: ./findDist.py overlapFile outputFile
 #
 # Takes a list of overlapping "arrows" and their corresponding region,
