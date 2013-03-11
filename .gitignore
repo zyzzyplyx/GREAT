@@ -16,9 +16,10 @@
 *.out
 *.app
 
-# Vim swp files
+# Vim files
 *.swp
 *~
+*.vim
 
 # Python 
 *.pyc

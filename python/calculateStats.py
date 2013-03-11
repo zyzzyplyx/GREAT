@@ -46,8 +46,12 @@ for termID in termIDs:
         elif whichBeta == 2:
             beta = len(termIDObjects) * max(weights) - alpha
         elif whichBeta == 3:
-            wgtRegDom = GREATx.WeightedRegDom(cutoff=1000000, mean=0, sd=333333)
-            termTSSs = [termIDObject.TSSPosition for termIDObject in termIDObjects]
+            wgtRegDom = GREATx.WeightedRegDom(cutOff=1000000, mean=0, sd=333333)
+            termTSSs = [GREATx.TSS(position=termIDObject.TSSPosition,\
+                                   geneName=termIDObject.geneName,\
+                                   geneID=termIDObject.geneID,\
+                                   chrName=termIDObject.chrName)\
+                        for termIDObject in termIDObjects]
             beta = len(termIDObjects) * (wgtRegDom.bestWeightedDart(termTSSs, chromosomes=GREATx.HUMAN_CHROMOSOMES)).weight
 
         outFile.write(termID + "\t" + str(scipy.stats.beta.cdf(x, alpha, beta)) + "\n")
