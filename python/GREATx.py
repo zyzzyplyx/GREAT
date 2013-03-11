@@ -451,6 +451,8 @@ class RegDom:
 
 
 class AssociationMaker:
+    # Output format:
+    """| term id# |  chrom name | arrow | arrow position (relative to chrom) | gene name | gene id | dart weight |  term coverage % (between 0 and 1) |"""
     dartTSSPairs = []
     genetoterms = collections.defaultdict(lambda :[])
     termtocoverage = collections.defaultdict(lambda : 0.0)
