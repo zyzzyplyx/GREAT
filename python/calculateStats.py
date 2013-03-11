@@ -19,7 +19,7 @@ inFn = sys.argv[1]
 outFn = sys.argv[2]
 whichBeta = int(sys.argv[3])
 
-inFile = open(infn)
+inFile = open(inFn)
 outFile = open(outFn)
 
 weightSum = 0 #Will store our alpha
