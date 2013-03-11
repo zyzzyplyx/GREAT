@@ -17,10 +17,10 @@ sys.path.append("./python")
 
 inFn = sys.argv[1]
 outFn = sys.argv[2]
+whichBeta = int(sys.argv[3])
 
 inFile = open(infn)
 outFile = open(outFn)
-
 
 weightSum = 0 #Will store our alpha
 X = 0 #Will store our input probability 
@@ -37,17 +37,18 @@ for termID in termIDs:
     if termID != 'UNKNOWN':
         termIDObjects = filter(lambda x: x.termID == termID, lineObjects)
         weights = [termIDObject.weight for termIDObject in termIDObjects]
+
         alpha = sum(weights)
-
-
-        beta = len(termIDObjects) - alpha
-        #beta = len(termIDObjects) * max(weights) - alpha
-
-        #wgtRegDom = GREATx.WeightedRegDom(cutoff=1000000, mean=0, sd=333333)
-        #termTSSs = [termIDObject.TSSPosition for termIDObject in termIDObjects]
-        #beta = len(termIDObjects) * (wgtRegDom.bestWeightedDart(termTSSs, chromosomes=GREATx.HUMAN_CHROMOSOMES)).weight
-
         x = termIDObjects[0].percentCoverage
+        
+        if whichBeta == 1:
+            beta = len(termIDObjects) - alpha
+        elif whichBeta == 2:
+            beta = len(termIDObjects) * max(weights) - alpha
+        elif whichBeta == 3:
+            wgtRegDom = GREATx.WeightedRegDom(cutoff=1000000, mean=0, sd=333333)
+            termTSSs = [termIDObject.TSSPosition for termIDObject in termIDObjects]
+            beta = len(termIDObjects) * (wgtRegDom.bestWeightedDart(termTSSs, chromosomes=GREATx.HUMAN_CHROMOSOMES)).weight
 
         outFile.write(termID + "\t" + str(scipy.stats.beta.cdf(x, alpha, beta)) + "\n")
 
