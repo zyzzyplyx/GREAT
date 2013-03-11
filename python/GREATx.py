@@ -235,8 +235,8 @@ class TermDartTSSTriple:
         self.geneName = line[4]
         self.geneID = line[5]
         self.TSSPosition = int(line[6])
-        self.weight = line[7]
-        self.percentCoverage = line[8]
+        self.weight = float(line[7])
+        self.percentCoverage = float(line[8])
 
     def __str__(self):
         return "\t".join([\
@@ -247,11 +247,11 @@ class TermDartTSSTriple:
             self.geneName,\
             self.geneID,\
             str(self.TSSPosition),\
-            self.weight,\
-            self.percentCoverage])
+            str(self.weight),\
+            str(self.percentCoverage)])
 
     def __repr__(self):
-        return "TermDataTSSTriple(%r, %r)" % (repr("\t".join([\
+        return "TermDataTSSTriple(%r)" % (repr("\t".join([\
                 repr(self.termID),\
                 repr(self.chrName),\
                 repr(self.dartName),\
@@ -260,7 +260,7 @@ class TermDartTSSTriple:
                 repr(self.geneID),\
                 repr(str(self.TSSPosition)),\
                 repr(self.weight),\
-                repr(self.percentCoverage)])), repr(regSz))
+                repr(self.percentCoverage)])))
 
 
 class Loci:
