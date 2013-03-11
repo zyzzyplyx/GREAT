@@ -20,7 +20,7 @@ outFn = sys.argv[2]
 whichBeta = int(sys.argv[3])
 
 inFile = open(inFn)
-outFile = open(outFn)
+outFile = open(outFn, 'w')
 
 weightSum = 0 #Will store our alpha
 X = 0 #Will store our input probability 
