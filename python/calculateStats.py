@@ -1,24 +1,27 @@
 import sys
 import os
-import WeightedRegDom as wrd #Our own module that computes the maximum weight of a given set of transcription start sites
+import GREATx 
 
-inFileName = sys.argv[1]
-outFileName = sys.argv[2]
-inFile = open(inFileName)
-outFile = open(outFileName,'w')
-#outFile after completion of this script will contain [X \alpha \beta] on one line
+# get data/SRFtoTerms.data
+GREATx.createRegDomsFileFromTSSs("GREATRegDoms/ontologies/hg18/hg18.loci", "data/hg18.regDom.bed", 1000000)
+GREATx.overlapSelect("data/hg18.regDom.bed", "GREATRegDoms/SRF.hg18.bed", "data/regDom.SRF.merge", options="-mergeOutput")
+GREATx.assignWeights(1000000, 0, 333333, "data/regDom.SRF.merge", "data/SRF.wgt")
+maker = GREATx.AssociationMaker("data/SRF.wgt", "GREATRegDoms/ontologies/hg18/GOBiologicalProcess/ontoToGene.canon", "data/hg18.regDom.bed", "GREATRegDoms/ontologies/hg18/chrom.sizes")
+maker.writeOutput("data/SRFtoTerms.data")
 
-
+inFile = open("data/SRFtoTerms.data")
+outFile = open("data/Term.p_values", 'w')
 
 weightSum = 0 #Will store our alpha
 X = 0 #Will store our input probability 
-weightIndex = 3 #the column with the weight
-percentIndex = 4 #the column with the percent
-tssIndex = 5#the column with the TSS
+
+weightIndex = 7 #the column with the weight
+percentIndex = 8 #the column with the percent
+tssIndex = 6 #the column with the TSS
 
 for line in inFile:
 	line = line.split() #Is it tab delimited??
-	weightSum = float(line[weightIndex])
+	weightSum += float(line[weightIndex]) 
 
 X = float(line[percentIndex])
 
@@ -55,10 +58,5 @@ os.system("rm -f tss.txt")
 ## python commands with new GREATx module
 
 #import GREATx
-#GREATx.createRegDomsFileFromTSSs("/afs/ir/class/cs173/finalProjects/GREATRegDoms/ontologies/hg18/hg18.loci", "/afs/ir.stanford.edu/users/c/c/cceleri/GREAT/data/hg18.regDom.bed", 1000000)
-#GREATx.overlapSelect("/afs/ir.stanford.edu/users/c/c/cceleri/GREAT/data/hg18.regDom.bed", "/afs/ir/class/cs173/finalProjects/GREATRegDoms/SRF.hg18.bed", "/afs/ir.stanford.edu/users/c/c/cceleri/GREAT/data/regDom.SRF.merge", options="-mergeOutput")
-#GREATx.assignWeights(1000000, 0, 333333, "/afs/ir.stanford.edu/users/c/c/cceleri/GREAT/data/regDom.SRF.merge", "/afs/ir.stanford.edu/users/c/c/cceleri/GREAT/data/SRF.wgt")
-#maker = GREATx.AssociationMaker("/afs/ir.stanford.edu/users/c/c/cceleri/GREAT/data/SRF.wgt", "/afs/ir/class/cs173/finalProjects/GREATRegDoms/ontologies/hg18/GOBiologicalProcess/ontoToGene.canon", "/afs/ir.stanford.edu/users/c/c/cceleri/GREAT/data/hg18.regDom.bed", "/afs/ir/class/cs173/finalProjects/GREATRegDoms/ontologies/hg18/chrom.sizes")
-#maker.writeOutput("/afs/ir.stanford.edu/users/c/c/cceleri/GREAT/data/SRFtoTerms.data")
 
 

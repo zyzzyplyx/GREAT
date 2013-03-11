@@ -78,20 +78,21 @@ class WeightedDart(Dart):
 class DartTSSPair:
     """Dart with a weight attribute relative to a Dart-Gene pair"""
 
-    def __init__(self, chrName='', dartName='', position=-1, weight=-1, geneName='', geneID=''):
+    def __init__(self, chrName='', dartName='', dartPosition=-1, TSSPosition=-1, weight=-1, geneName='', geneID=''):
         self.chrName = chrName
         self.dartName = dartName
-        self.position = position
+        self.dartPosition = dartPosition
+        self.TSSPosition = TSSPosition
         self.weight = weight
         self.geneName = geneName
         self.geneID = geneID
 
     def __str__(self):
-        return "\t".join([self.chrName, self.dartName, str(self.position), self.geneName, self.geneID, str(self.weight)])
+        return "\t".join([self.chrName, self.dartName, str(self.dartPosition), self.geneName, self.geneID, str(self.TSSPosition), str(self.weight)])
 
     def __repr__(self):
-        return 'GREATx.DartTSSPair(chrName=%r, dartName=%r, position=%r, weight=%r, geneName=%r, geneID=%r)' %\
-                (repr(self.chrName), repr(self.dartName), repr(self.position), repr(self.weight), repr(self.geneName), repr(self.geneID))
+        return 'GREATx.DartTSSPair(chrName=%r, dartName=%r, dartPosition=%r, TSSPosition=%r, weight=%r, geneName=%r, geneID=%r)' %\
+                (repr(self.chrName), repr(self.dartName), repr(self.dartPosition), repr(self.TSSPosition), repr(self.weight), repr(self.geneName), repr(self.geneID))
 
 class TSS:
     """TSS object with chromosome name, gene name, gene id, and position on the genome attributes"""
@@ -103,10 +104,11 @@ class TSS:
         self.position = int(position)
 
     def __str__(self):
-        return 'chrName: %s\nGene Name: %s\nGene ID: %s\nPosition: %d' % (self.chrName, self.geneName, self.geneID, self.position)
+        return 'chrName: %s\nGene Name: %s\nGene ID: %s\nPosition: %d' %\
+                (self.chrName, self.geneName, self.geneID, self.position)
 
     def __repr__(self):
-        return 'GREATx.TSS(position=%r, geneName=%r, geneID=%r, chrName=%r)' %\
+        return 'GREATx.TSS(position=%r, geneName=%r, geneID=%r, chrName=%r)'%\
                 (repr(self.position), repr(self.geneName), repr(self.geneID), repr(self.chrName))
 
 class WeightedRegDom:
@@ -129,7 +131,9 @@ class WeightedRegDom:
 
     Find the best position for a dart in a regulatory domain
     
-    >>> TSSs = [GREATx.TSS(chrName='chr123', geneName='tss', geneID='1234', position=i) for i in range(10)]
+    >>> TSSs = [GREATx.TSS(\
+            chrName='chr123', geneName='tss', geneID='1234', position=i)\
+            for i in range(10)]
     >>> wgtRegDom = GREATx.WeightedRegDom(cutOff=2, mean=0.0, sd=3)
     >>> bestWeightedDart = wgtRegDom.bestWeightedDart(TSSs)
     
@@ -148,7 +152,8 @@ class WeightedRegDom:
         self.sd = sd
 
     def __repr__(self):
-        return 'WeightedRegDom(%r, %r, %r)' % (repr(self.cutOff),repr(self.mean), repr(self.sd))
+        return 'WeightedRegDom(%r, %r, %r)' %\
+                (repr(self.cutOff),repr(self.mean), repr(self.sd))
 
     # note that this algorithm is okay because transcriptionStartSites is sorted
     def bestWeightedDart(self, TSSs, chromosomes=HUMAN_CHROMOSOMES):
@@ -205,14 +210,57 @@ class WeightedRegDom:
         if dart.chrName == tss.chrName:
             return DartTSSPair(chrName=dart.chrName,\
                     dartName=dart.name,\
-                    position=dart.position,\
+                    dartPosition=dart.position,\
                     weight=self.getDartTSSPairWgt(dart, tss),\
                     geneName=tss.geneName,\
-                    geneID=tss.geneID)
+                    geneID=tss.geneID,\
+                    TSSPosition=tss.position)
         else:
             sys.stderr('Cannot make a dart-TSS pair b/c \
                     dart.chrName != tss.chrName')
             return None
+
+class TermDartTSSTriple:
+
+    def __init__(self, tripleLine):
+        self._parseTermDartTSSTripleLine(tripleLine)
+
+    def _parseTermDartTSSTripleLine(self, tripleLine):
+        """Read fields of tripleLine into object attributes."""
+        line = tripleLine.split()
+        self.termID = line[0]
+        self.chrName = line[1]
+        self.dartName = line[2]
+        self.dartPosition = int(line[3])
+        self.geneName = line[4]
+        self.geneID = line[5]
+        self.TSSPosition = int(line[6])
+        self.weight = line[7]
+        self.percentCoverage = line[8]
+
+    def __str__(self):
+        return "\t".join([\
+            self.termID,\
+            self.chrName,\
+            self.dartName,\
+            str(self.dartPosition),\
+            self.geneName,\
+            self.geneID,\
+            str(self.TSSPosition),\
+            self.weight,\
+            self.percentCoverage])
+
+    def __repr__(self):
+        return "TermDataTSSTriple(%r, %r)" % (repr("\t".join([\
+                repr(self.termID),\
+                repr(self.chrName),\
+                repr(self.dartName),\
+                repr(str(self.dartPosition)),\
+                repr(self.geneName),\
+                repr(self.geneID),\
+                repr(str(self.TSSPosition)),\
+                repr(self.weight),\
+                repr(self.percentCoverage)])), repr(regSz))
 
 
 class Loci:
@@ -451,6 +499,7 @@ class RegDom:
 
 
 class AssociationMaker:
+
     dartTSSPairs = []
     genetoterms = collections.defaultdict(lambda :[])
     termtocoverage = collections.defaultdict(lambda : 0.0)
@@ -467,10 +516,11 @@ class AssociationMaker:
                 dartTSSPair = DartTSSPair(\
                         chrName=line[0],\
                         dartName=line[1],\
-                        position=line[2],\
+                        dartPosition=line[2],\
                         geneName=line[3],\
                         geneID=line[4],\
-                        weight=float(line[5]))
+                        TSSPosition=line[5],\
+                        weight=float(line[6]))
 
                 self.dartTSSPairs.append(dartTSSPair)
 
