@@ -55,8 +55,8 @@ os.system("rm -f tss.txt")
 ## python commands with new GREATx module
 
 #import GREATx
-#GREATx.expandTSSsToRegDoms("/afs/ir/class/cs173/finalProjects/GREATRegDoms/ontologies/hg18/hg18.loci", "/afs/ir.stanford.edu/users/c/c/cceleri/GREAT/data/hg18.regDom.bed", 1000000)
-#GREATx.overlapSelectMergeOutput("/afs/ir.stanford.edu/users/c/c/cceleri/GREAT/data/hg18.regDom.bed", "/afs/ir/class/cs173/finalProjects/GREATRegDoms/SRF.hg18.bed", "/afs/ir.stanford.edu/users/c/c/cceleri/GREAT/data/regDom.SRF.merge")
+#GREATx.createRegDomsFileFromTSSs("/afs/ir/class/cs173/finalProjects/GREATRegDoms/ontologies/hg18/hg18.loci", "/afs/ir.stanford.edu/users/c/c/cceleri/GREAT/data/hg18.regDom.bed", 1000000)
+#GREATx.overlapSelect("/afs/ir.stanford.edu/users/c/c/cceleri/GREAT/data/hg18.regDom.bed", "/afs/ir/class/cs173/finalProjects/GREATRegDoms/SRF.hg18.bed", "/afs/ir.stanford.edu/users/c/c/cceleri/GREAT/data/regDom.SRF.merge", options="-mergeOutput")
 #GREATx.assignWeights(1000000, 0, 333333, "/afs/ir.stanford.edu/users/c/c/cceleri/GREAT/data/regDom.SRF.merge", "/afs/ir.stanford.edu/users/c/c/cceleri/GREAT/data/SRF.wgt")
 #maker = GREATx.AssociationMaker("/afs/ir.stanford.edu/users/c/c/cceleri/GREAT/data/SRF.wgt", "/afs/ir/class/cs173/finalProjects/GREATRegDoms/ontologies/hg18/GOBiologicalProcess/ontoToGene.canon", "/afs/ir.stanford.edu/users/c/c/cceleri/GREAT/data/hg18.regDom.bed", "/afs/ir/class/cs173/finalProjects/GREATRegDoms/ontologies/hg18/chrom.sizes")
 #maker.writeOutput("/afs/ir.stanford.edu/users/c/c/cceleri/GREAT/data/SRFtoTerms.data")

@@ -1,10 +1,14 @@
-#!/usr/bin/env python
+#! /usr/bin/python2.7
+r"""GREAT extension classes
 
-__doc__ ="""
-GREATx is an extension of the GREAT functionality. This module extends GREAT
-by assigning weights to hits on the regulatory domains rather than counting
-each hit equally. The classes and methods in this module use this model of
-assigning weights to hits on the regulatory domain to calculate statistics.
+GREATx extends GREAT by assigning weighted hits on regulatory domains on
+the continuous interval [0,1]. By assigning weights in this way,
+we are able to generalize GREAT's Binomial distribution p-value to a
+Beta distribution p-value. In addition, we add new spatial autocorrelation
+statistics to GREAT: Getis-Ord General G global statistic, Moran's I
+global statistic, and Getis-Ord Gi* local statistic.
+
+
 
 Weights are determined for each dart in the regulatory domain by overlapping
 normal distributions centered at each transcription start site. The regulatory
@@ -21,10 +25,15 @@ With these attributes, each instance of :WeightedRegDom: can compute the weight
 assigned to any dart on the genome and determine the maximum weight
 assignment in the regulatory domain.
 
-The different statistics included in this module are a Beta distribution
-p-value, and the Gi-local, G general global, and Moran's I spatial
-autocorrelation statistics.
 """
+
+__author__ = """Charles Celerier <cceleri@cs.stanford.edu>, Yifei Men <ymen@stanford.edu>,
+            Ahmed Bou-Rabee <bourabee@stanford.edu>, Andrew Stiles <aostiles@stanford.edu>,
+            Steven Lee <slee2010@stanford.edu>, and Nicholas Damien McGee <ndmcgee@cs.stanford.edu>"""
+__date__ = """13 March 2012"""
+
+__credits__ = """Gill Bejerano, for a thrilling tour of the genome.
+Jim Notwell and Harendra Guturu, for their advice on this project."""
 
 from scipy.stats import norm
 from math import fabs
@@ -32,19 +41,81 @@ import collections
 import re
 import sys
 import os
-from collections import namedtuple
+import operator
 
+HUMAN_CHROMOSOMES = ['chr' + str(i) for i in range(1,23)] + ['chrX', 'chrY']
 
-Result = namedtuple('Result', ['maxWgt', 'maxWgtDart'])
+class Dart:
+    """Dart object with chromosome name and position on the genome attributes"""
+
+    def __init__(self, chrName='', name='', position=-1):
+        self.chrName = chrName
+        self.name = name
+        self.position = int(position)
+
+    def __str__(self):
+        return "Dart Name: %s\nPosition: %d" % (self.chrName, self.position)
+
+    def __repr__(self):
+        return 'GREATx.Dart(%r, %r)' % (repr(self.chrName), repr(self.position))
+
+class WeightedDart(Dart):
+    """Dart with a weight attribute"""
+
+    def __init__(self, chrName='', name='', position=-1, weight=-1):
+        self.chrName = chrName
+        self.name = name
+        self.position = position
+        self.weight = weight
+
+    def __str__(self):
+        return Dart.__str__(self) + ("\nWeight: %f" % self.weight)
+
+    def __repr__(self):
+        return 'GREATx.WeightedDart(%r, %r, weight=%r)' %\
+                (repr(self.chrName), repr(self.position), repr(self.weight))
+
+class DartTSSPair:
+    """Dart with a weight attribute relative to a Dart-Gene pair"""
+
+    def __init__(self, chrName='', dartName='', position=-1, weight=-1, geneName='', geneID=''):
+        self.chrName = chrName
+        self.dartName = dartName
+        self.position = position
+        self.weight = weight
+        self.geneName = geneName
+        self.geneID = geneID
+
+    def __str__(self):
+        return "\t".join([self.chrName, self.dartName, str(self.position), self.geneName, self.geneID, str(self.weight)])
+
+    def __repr__(self):
+        return 'GREATx.DartTSSPair(chrName=%r, dartName=%r, position=%r, weight=%r, geneName=%r, geneID=%r)' %\
+                (repr(self.chrName), repr(self.dartName), repr(self.position), repr(self.weight), repr(self.geneName), repr(self.geneID))
+
+class TSS:
+    """TSS object with chromosome name, gene name, gene id, and position on the genome attributes"""
+
+    def __init__(self, position=-1, geneName='', geneID='', chrName=''):
+        self.chrName = chrName
+        self.geneName = geneName
+        self.geneID = geneID
+        self.position = int(position)
+
+    def __str__(self):
+        return 'chrName: %s\nGene Name: %s\nGene ID: %s\nPosition: %d' % (self.chrName, self.geneName, self.geneID, self.position)
+
+    def __repr__(self):
+        return 'GREATx.TSS(position=%r, geneName=%r, geneID=%r, chrName=%r)' %\
+                (repr(self.position), repr(self.geneName), repr(self.geneID), repr(self.chrName))
 
 class WeightedRegDom:
     """
-    Object which computes dart weights in a regulatory domain
+    Factory to compute dart weights in a regulatory domain
 
     Parameters
     ----------
-    transcriptionStartSites : array of transcription
-                              start sites
+    TSSs : array of TSS objects
     cutOff : maximum distance an dart can be from
              a transcription start site to be
              assigned any weight from it
@@ -52,142 +123,291 @@ class WeightedRegDom:
            for calculating weights
     sd : standard deviation of the normal distribution
          for calculating weights
-
     
     Examples
     --------
-    >>> import WeightedRegDom as wrd
-    >>> tss = [1, 2, 3]
-    >>> wgtRegDom = wrd.WeightedRegDom(tss, cutOff=2, mean=0.0, sd=3)
+
+    Find the best position for a dart in a regulatory domain
     
-    Get weight for a given site
+    >>> TSSs = [GREATx.TSS(chrName='chr123', geneName='tss', geneID='1234', position=i) for i in range(10)]
+    >>> wgtRegDom = GREATx.WeightedRegDom(cutOff=2, mean=0.0, sd=3)
+    >>> bestWeightedDart = wgtRegDom.bestWeightedDart(TSSs)
     
-    >>> twoWgt = wgtRegDom.getDartWgt(2)
+    Get a DartTSSPair
     
-    Get maximum site weight
-    
-    >>> maxWgt = wgtRegDom.maxDartWgt()
+    >>> wgtRegDom = GREATx.WeightedRegDom(TSSs, cutOff=2, mean=0.0, sd=3)
+    >>> Dart = Dart('myDart', 14)
+    >>> TSS = TSS('chr123', 'myGene', 'myGeneID', 20)
+    >>> DartTSSPair = wgtRegDom.makeDartTSSPair(Dart,TSS)
     
     """
-    
-    def __init__(self, transcriptionStartSites, cutOff, mean, sd):
-        self.transcriptionStartSites = transcriptionStartSites
-        self.transcriptionStartSites.sort()
+
+    def __init__(self, cutOff=1000000, mean=0.0, sd=333333):
         self.cutOff = cutOff
-        self.wgtDistribution = self.initWgtDistribution(mean, sd, cutOff)
+        self.mean = mean
+        self.sd = sd
 
-    def getWgtDistribution(self):
-        """Return array of weight values for each base inside the cutOff for a tss."""
-        return self.wgtDistribution
-
-    def getTranscriptionStartSites(self):
-        """Return tss array."""
-        return self.transcriptionStartSites
+    def __repr__(self):
+        return 'WeightedRegDom(%r, %r, %r)' % (repr(self.cutOff),repr(self.mean), repr(self.sd))
 
     # note that this algorithm is okay because transcriptionStartSites is sorted
-    def maxDartWgt(self):
-        """Return namedtuple containing the max total weight and where it occurs."""
-
-        # only do this hard calculation once!
-        if (self.maxWgt):
-            return Result(self.maxWgt, self.maxWgtDart)
-
-        maxWgt = 0
-        dart = 0
-        for tss in self.transcriptionStartSites:
-            for i in range(-self.cutOff, self.cutOff+1):
-                if (dart < tss + i):  # dart only increases
-                    dart = tss + i
-                    dartWgt = self.getDartWgt(dart)
-                    if (dartWgt > maxWgt):
-                        maxWgt = dartWgt
-                        maxWgtDart = dart
-    
-        return Result(self.maxWgt, self.maxWgtDart)
-
-    def getDartWgt(self, dart):
-        """Return the total weight assigned to an dart."""
-        wgt = 0
-        for tss in self.transcriptionStartSites:
-            if (fabs(dart - tss) <= self.cutOff):
-                wgt += self.getRelativeDartWgt(dart, tss)
-
-        return wgt
-
-    def getAllNonZeroDarts(self):
-        """Return all darts which get a weight from a tss."""
-        lastSite = self.transcriptionStartSites[-1]
+    def bestWeightedDart(self, TSSs, chromosomes=HUMAN_CHROMOSOMES):
+        """Defines the bestWeightedDart attribute
         
-        darts = []
-        for tss in self.transcriptionStartSites:
-            darts += [tss + i for i in range(-self.cutOff, self.cutOff+1)]
+        Doing this may take a while, so this attribute is only calculated if
+        the user wants it.
+        """
+
+        bestWeightedDart = WeightedDart('', -1, weight=-1)
+        for chrName in chromosomes:
+            chrTSSs = filter(lambda x: x.chrName == chrName, TSSs)
+            chrTSSs.sort(key=operator.attrgetter('position'))
+            dart = Dart(chrName, -1)
+
+            for tss in chrTSSs:
+                for i in range(-self.cutOff, self.cutOff+1):
+
+                    # dart position only increases
+                    if (dart.position < tss.position + i):
+                        dart.position = tss.position + i
+                        wDart = self.getWeightedDart(chrTSSs, dart, wantFilter=False)
+
+                        if (wDart.weight > bestWeightedDart.weight):
+                            bestWeightedDart.chrName = wDart.chrName
+                            bestWeightedDart.position = wDart.position
+                            bestWeightedDart.weight = wDart.weight
+
+        return bestWeightedDart
+
+    def getWeightedDart(self, TSSs, dart, wantFilter=True):
+        """Returns a WeightedDart for the given TSSs."""
+
+        if wantFilter:
+            TSSs = filter(lambda x: x.chrName == dart.chrName, TSSs)
+
+        wDart = WeightedDart(dart.chrName, dart.position, weight=0)
+        for tss in TSSs:
+            if (fabs(wDart.position - tss.position) <= self.cutOff):
+                wDart.weight += self.getDartTSSPairWgt(dart, tss)
+
+        return wDart
+
+    def getDartTSSPairWgt(self, dart, tss):
+        """Return the weight for a particular dart relative to a TSS."""
+
+        wgtDist = norm(self.mean, self.sd)
+        maxWgtDist = wgtDist.pdf(self.mean)
+        dartWgt = wgtDist.pdf(tss.position - dart.position)/maxWgtDist
+
+        return dartWgt
+
+    def makeDartTSSPair(self, dart, tss):
+        if dart.chrName == tss.chrName:
+            return DartTSSPair(chrName=dart.chrName,\
+                    dartName=dart.name,\
+                    position=dart.position,\
+                    weight=self.getDartTSSPairWgt(dart, tss),\
+                    geneName=tss.geneName,\
+                    geneID=tss.geneID)
+        else:
+            sys.stderr('Cannot make a dart-TSS pair b/c \
+                    dart.chrName != tss.chrName')
+            return None
+
+
+class Loci:
+    """Loci object with lots of different attributes."""
+
+    def __init__(self, lociLine):
+        self._parseLociLine(lociLine)
+
+    def _parseLociLine(self, lociLine):
+        """Expands fields of lociLine to a regulatory region line."""
+        lineFields = lociLine.split()
+        self.chrName = lineFields[1]
+        self.TSSPosition = int(lineFields[2])
+        self.geneName = lineFields[4]
+        self.geneID = lineFields[0]
+        self.strand = lineFields[3]
+
+    def __str__(self):
+        return "\t".join([\
+                self.geneID,\
+                self.chrName,\
+                str(self.TSSPosition),\
+                self.strand,\
+                self.geneName])
+
+    def __repr__(self):
+        return "Loci(%r, %r)" % (repr("\t".join([\
+                repr(self.geneID),\
+                repr(self.chrName),\
+                repr(self.TSSPosition),\
+                repr(self.strand),\
+                repr(self.geneName)])), repr(regSz))
+
+class LociRegulatoryRegion(Loci):
+    """Regulatory region object with lots of different attributes."""
+    def __init__(self, *args, **kwargs):
+        Loci.__init__(self, *args)
+        regSz = kwargs.pop('regSz')
+        self.regStart = max(0, int(self.TSSPosition) - regSz)
+        self.regEnd = int(self.TSSPosition) + regSz
+
+    def __str__(self):
+        return "\t".join([\
+                self.chrName,\
+                str(self.regStart),\
+                str(self.regEnd),\
+                self.geneName,\
+                self.geneID,\
+                self.strand,\
+                str(self.TSSPosition)])
+
+    def __repr__(self):
+        return "LociRegulatoryRegion(%r, regSz=%r)" % (repr("\t".join([\
+                repr(self.geneName),\
+                repr(self.chrName),\
+                repr(self.TSSPosition),\
+                repr(self.strand),\
+                repr(self.geneName),\
+                repr(self.strand)])), repr(regSz))
+
+def createRegDomsFileFromTSSs(lociFn, regDomFn, regSz):
+    """Expands Loci file into a regulator regions file
     
-        return darts
-
-    def getRelativeDartWgt(self, dart, tss):
-        """Return the weight for a particular dart relative to a tss."""
-        return self.wgtDistribution[tss-dart]
-
-    def initWgtDistribution(self, mean, sd, cutOff):
-        """Initialize array of weight values for each base inside the cutOff for a tss."""
-        wgt = norm(mean, sd)
-        maxWgt = wgt.pdf(mean)
-        return [wgt.pdf(i)/maxWgt for i in range(-cutOff, cutOff + 1)]
-
-    def readTSSPositions(fstr):
-        """Read a file of numbers into an array"""
-        tss = []
-        f = open(fstr)
-        for line in f:
-            tss.append(int(line))
+    Parameters
+    ----------
     
-        return tss
+    lociFn :  name of file containing loci (e.g. hg18.loci)
+    regDomFn : name of file to contain the created regulatory regions (e.g. hg18.regDom.bed)
+    regSz : cut-off for regulatory regions
 
-def parseLociLine(lociLine, regSz):
-    """Expands fields of lociLine to a regulatory region line."""
-    lineFields = lociLine.split()
-    chrName = lineFields[1]
-    TSSPosition = lineFields[2]
-    regStart = str(max(0, int(TSSPosition) - regSz))
-    regEnd = str(int(TSSPosition) + regSz)
-    geneName = lineFields[4]
-    geneID = lineFields[0]
-    strand = lineFields[3]
-
-    return "\t".join([chrName, regStart, regEnd, geneName, geneID, strand, TSSPosition])
-    #return line[1] +"\t"+str(max(0, int(line[2]) - regSz))+"\t"+str(int(line[2]) + regSz)+"\t"+line[4]+"\t"+line[0]+"\t"+line[3]+"\t"+line[2]+"\n")
-
-def expandTSSsToRegDoms(lociFn, regDomFn, regSz):
-    """Expands transcription start sites into regulatory regions"""
+    """
     loci = open(lociFn, 'r')
     regDom = open(regDomFn, 'w')
-    #regSz = 1000000
     
     for line in loci:
-        regDom.write(parseLociLine(line, regSz)+"\n")
+        regDom.write(str(LociRegulatoryRegion(line,regSz=regSz)) + '\n')
 
-def overlapSelectMergeOutput(regDomFn, dartFn, mergedFn):
-    """Runs overlapselect -mergeoutput <regDomFn> <dartFn> <mergedFn>"""
-    program = "/afs/ir/class/cs173/bin/i386_linux26/overlapSelect -mergeOutput"
-    os.system(" ".join([program, regDomFn, dartFn, mergedFn]))
+def overlapSelect(regDomFn, dartFn, mergedFn, options=''):
+    """Runs overlapselect <options> <regDomFn> <dartFn> <mergedFn>.
 
-def getTSSs(lociFn):
-    """Returns transcription start sites in a dictionary for each chromosome"""
-    loci = open(lociFn, 'r')
-    TSSs = {}
+    Parameters
+    ----------
+    selectFile :  name of file containing loci (e.g. hg18.loci)
+    inFile : name of file to contain the created regulatory regions (e.g. hg18.regDom.bed)
+    outFile : cut-off for regulatory regions
+    options : space delemited list of options (e.g. "-selectFmt=bed -mergeOutput")
 
-    for line in loci:
-        line = line.split()
-        chrName = line[1]
-        TSSPosition = line[2]
-        
-        if (not (chrName in TSSs)):
-            TSSs[chrName] = [TSSPosition]
-        else:
-            TSSs[chrName].append(TSSPosition)
+    Usage
+    -----
+    Note: This usage docstring is from the program overlapSelect
+    
+    overlapSelect [options] selectFile inFile outFile
+    
+    Select records based on overlaping chromosome ranges.  The ranges are
+    specified in the selectFile, with each block specifying a range.
+    Records are copied from the inFile to outFile based on the selection
+    criteria.  Selection is based on blocks or exons rather than entire
+    range.
+    
+    Options starting with -select* apply to selectFile and those starting
+    with -in* apply to inFile.
+    
+    Options:
+      -selectFmt=fmt - specify selectFile format:
+              psl - PSL format (default for *.psl files).
+              genePred - gepePred format (default for *.gp or
+                         *.genePred files).
+              bed - BED format (default for *.bed files).
+                    If BED doesn't have blocks, the bed range is used. 
+      -selectCoordCols=spec - selectFile is tab-separate with coordinates
+           as described by spec, which is one of:
+                o chromCol - chrom in this column followed by start and end.
+                o chromCol,startCol,endCol - chrom, start, and end in specified
+                  columns.
+                o chromCol,startCol,endCol,strandCol - chrom, start, end, and
+                  strand in specified columns.
+              NOTE: column numbers are zero-based
+      -selectCds - Use only CDS in the selectFile
+      -selectRange - Use entire range instead of blocks from records in
+              the selectFile.
+      -inFmt=fmt - specify inFile format, same values as -selectFmt.
+      -inCoordCols=spec - inFile is tab-separate with coordinates specified by
+          spec, in format described above.
+      -inCds - Use only CDS in the inFile
+      -inRange - Use entire range instead of blocks of records in the inFile.
+      -nonOverlapping - select non-overlaping instead of overlaping records
+      -strand - must be on the same strand to be considered overlaping
+      -oppositeStrand - must be on the opposite strand to be considered overlaping
+      -excludeSelf - don't compare records with the same coordinates and name.
+          Warning: using only one of -inCds or -selectCds will result in different
+          coordinates for the same record.
+      -idMatch - only select overlapping records if they have the same id
+      -aggregate - instead of computing overlap bases on individual select entries, 
+          compute it based on the total number of inFile bases overlap by selectFile
+          records. -overlapSimilarity and -mergeOutput will not work with
+          this option.
+      -overlapThreshold=0.0 - minimun fraction of an inFile record that
+          must be overlapped by a single select record to be considered
+          overlapping.  Note that this is only coverage by a single select
+          record, not total coverage.
+      -overlapThresholdCeil=1.1 - select only inFile records with less than
+          this amount of overlap with a single record.
+      -overlapSimilarity=0.0 - minimun fraction of inFile and select records that
+          Note that this is only coverage by a single select record and this
+          is; bidirectional inFile and selectFile must overlap by this
+          amount.  A value of 1.0 will select identical records (or CDS if
+          both CDS options are specified.  Not currently supported with
+          -aggregate.
+      -overlapSimilarityCeil=1.1 - select only inFile records with less than
+          this amount of similarity with a single record.
+      -overlapBases=-1 - minimum number of bases of overlap, < 0 disables.
+      -statsOutput - output overlap statistics instead of selected records. 
+          If no overlap criteria is specified, all overlapping entries are
+          reported, Otherwise only the pairs passing the citeria are
+          reported. This results in a tab-seperated file with the columns:
+             inId selectId inOverlap selectOverlap overBases
+          Where inOverlap is the fraction of the inFile record overlapped by
+          the selectFile record and selectOverlap is the fraction of the
+          select record overlap by inFile records.  With -aggregate, output
+          is:
+             inId inOverlap inOverBases inBases
+      -statsOutputAll - like -statsOutput, however output all inFile records,
+          even ones that are not overlapped.
+      -mergeOutput - output file with be a merge of the input file with the
+          selectFile records that selected it.  The format is
+             inRec<tab>selectRec.
+          if multiple select records hit, inRec is repeated. This will increase
+          the memory required. Not supported with -nonOverlapping or -aggregate.
+      -idOutput - output a table seprate file of pairs of
+             inId selectId
+          with -aggregate, omly a single column of inId is written
+      -dropped=file  - output rows that were dropped to this file.
+      -verbose=n - verbose > 1 prints some details,
+    """
+    
+    program = "/afs/ir/class/cs173/bin/i386_linux26/overlapSelect"
+    os.system(" ".join([program, options, regDomFn, dartFn, mergedFn]))
 
-    return TSSs
-        
+#def getTSSs(lociFn):
+#    """Returns transcription start sites in a dictionary for each chromosome"""
+#    loci = open(lociFn, 'r')
+#    TSSs = {}
+#
+#    for line in loci:
+#        line = line.split()
+#        chrName = line[1]
+#        TSSPosition = line[2]
+#        
+#        if (not (chrName in TSSs)):
+#            TSSs[chrName] = [TSSPosition]
+#        else:
+#            TSSs[chrName].append(TSSPosition)
+#
+#    return TSSs
+
 def assignWeights(cutOff, mean, sd, mergedFn, dartsToWeightsFn):
     """Writes to dartsToWeightsFn each dart with the geneName, geneID, and weight
 
@@ -201,32 +421,25 @@ def assignWeights(cutOff, mean, sd, mergedFn, dartsToWeightsFn):
     """
 
     merged = open(mergedFn, 'r')
-    dartsToWeights = open(dartsToWeightsFn, 'w')
+    dartsToWeightsFile = open(dartsToWeightsFn, 'w')
+    wgtRegDom = WeightedRegDom(cutOff, mean, sd)
 
+    dart = Dart()
+    tss = TSS()
     for line in merged:
         line = line.split()
-        dartPos = (int(line[1]) + int(line[2]))/2
-        lociCenter = int(line[10])
-        dartName = line[3] 
-        geneName = line[7]
-        geneID = line[8]
 
-        wgtDist = norm(mean, sd)
-        maxWgtDist = wgtDist.pdf(mean)
-        dartWgt = wgtDist.pdf(lociCenter - dartPos)/maxWgtDist
+        dart.chrName = line[0]
+        dart.name = line[3] 
+        dart.position = (int(line[1]) + int(line[2]))/2
 
-        dartsToWeights.write("\t".join([dartName, geneName, geneID, repr(dartWgt)]) + "\n")
+        tss.chrName = line[4]
+        tss.position = int(line[10])
+        tss.geneName = line[7]
+        tss.geneID = line[8]
 
-class Dart:
-
-    def __init__(self, name, gene_name, id, weight):
-        self.name = name
-        self.gene_name = gene_name
-        self.gene_id = id
-        self.weight = weight
-
-    def __str__(self):
-        return 'Dart Name: ' + self.name + '\nGene Name: ' + self.gene_name + '\nID: ' + str(self.id) + '\nWeight: ' + str(self.weight)
+        dartTSSPair = wgtRegDom.makeDartTSSPair(dart, tss)
+        dartsToWeightsFile.write(str(dartTSSPair) + "\n")
 
 
 class RegDom:
@@ -238,7 +451,7 @@ class RegDom:
 
 
 class AssociationMaker:
-    darts = []
+    dartTSSPairs = []
     genetoterms = collections.defaultdict(lambda :[])
     termtocoverage = collections.defaultdict(lambda : 0.0)
 
@@ -251,19 +464,26 @@ class AssociationMaker:
         with open(fstr) as f:
             for line in f:
                 line = line.split("\t")
-                dart = Dart(line[0], line[1], int(line[2]), float(line[3]))
-                self.darts.append(dart)
+                dartTSSPair = DartTSSPair(\
+                        chrName=line[0],\
+                        dartName=line[1],\
+                        position=line[2],\
+                        geneName=line[3],\
+                        geneID=line[4],\
+                        weight=float(line[5]))
+
+                self.dartTSSPairs.append(dartTSSPair)
 
     def buildGeneTermMap(self, geneOntologyFn):
         f = open(geneOntologyFn)
         for line in f:
             line = line.split("\t")
             term_id = int(re.search("\d+", line[0]).group(0))
-            gene_id = int(re.search("\d+", line[1]).group(0))
-            self.genetoterms[gene_id].append(term_id)
+            geneID = re.search("\d+", line[1]).group(0)
+            self.genetoterms[geneID].append(term_id)
 
     def buildTermWeightsMap(self, regDomFn, chromSizesFn):
-        genes = [dart.gene_id for dart in self.darts]
+        genes = [dartTSSPair.geneID for dartTSSPair in self.dartTSSPairs]
         regdoms = []
         with open(regDomFn) as f:
             for line in f:
@@ -309,22 +529,22 @@ class AssociationMaker:
         result.append(cur)
         return result
 
-    def getTerms(self, gene_id):
+    def getTerms(self, geneID):
         #return [str(x[0]) for x in self.termtogenes.items() if gene in x[1]]
-        return map(lambda x: str(x), self.genetoterms[gene_id])
+        return map(lambda x: str(x), self.genetoterms[geneID])
 
-    def buildLine(self, term_name, dart, term_weight):
-        return "\t".join([term_name, str(dart.gene_id), dart.name, str(dart.weight), str(term_weight)]) + "\n"
+    def buildLine(self, term_name, dartTSSPair, term_weight):
+        return "\t".join([term_name, dartTSSPair.geneID, dartTSSPair.chrName, str(dartTSSPair.weight), str(term_weight)]) + "\n"
 
     def writeOutput(self, output_file):
         f = open(output_file, "w")
-        for dart in self.darts:
-            terms = self.getTerms(dart.gene_id)
+        for dartTSSPair in self.dartTSSPairs:
+            terms = self.getTerms(dartTSSPair.geneID)
             if terms == []: # in case we get a gene that for some reason has no terms associated
-                f.write(self.buildLine("UNKNOWN", dart, "0.0"))
+                f.write(self.buildLine("UNKNOWN", dartTSSPair, "0.0"))
             else:
                 for term in terms:
-                    f.write(self.buildLine(term, dart, self.termtocoverage[term]))
+                    f.write(self.buildLine(term, dartTSSPair, self.termtocoverage[term]))
         f.close()
 
 ## DEPRECATED
