@@ -534,7 +534,7 @@ class AssociationMaker:
         return map(lambda x: str(x), self.genetoterms[geneID])
 
     def buildLine(self, term_name, dartTSSPair, term_weight):
-        return "\t".join([term_name, dartTSSPair.geneID, dartTSSPair.chrName, str(dartTSSPair.weight), str(term_weight)]) + "\n"
+        return "\t".join([term_name, dartTSSPair.geneID, dartTSSPair.dartName, str(dartTSSPair.weight), str(term_weight)]) + "\n"
 
     def writeOutput(self, output_file):
         f = open(output_file, "w")
