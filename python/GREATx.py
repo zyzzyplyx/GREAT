@@ -488,8 +488,8 @@ class AssociationMaker:
         with open(regDomFn) as f:
             for line in f:
                 line = line.split()
-                if int(line[4]) in genes:
-                    regdoms.append(RegDom(int(line[1]),int(line[2]),int(line[4])))
+                if line[4] in genes:
+                    regdoms.append(RegDom(int(line[1]),int(line[2]),line[4]))
         genome_size = 0
         with open(chromSizesFn) as f:
             for line in f:
