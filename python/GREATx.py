@@ -42,8 +42,33 @@ import re
 import sys
 import os
 import operator
+import scipy.stats
 
 HUMAN_CHROMOSOMES = ['chr' + str(i) for i in range(1,23)] + ['chrX', 'chrY']
+HUMAN_CHROMOSOMES_SIZE = [ 247249719,\
+                           242951149,\
+                           199501827,\
+                           191273063,\
+                           180857866,\
+                           170899992,\
+                           158821424,\
+                           146274826,\
+                           140273252,\
+                           135374737,\
+                           134452384,\
+                           132349534,\
+                           114142980,\
+                           106368585,\
+                           100338915,\
+                           88827254,\
+                           78774742,\
+                           76117153,\
+                           63811651,\
+                           62435964,\
+                           46944323,\
+                           49691432,\
+                           154913754,\
+                           57772954]
 
 class Dart:
     """Dart object with chromosome name and position on the genome attributes"""
@@ -541,12 +566,7 @@ class AssociationMaker:
                 line = line.split()
                 if line[4] in genes:
                     regdoms.append(RegDom(int(line[1]),int(line[2]),line[4]))
-        genome_size = 0
-        with open(chromSizesFn) as f:
-            for line in f:
-                line = line.split()
-                chrom_size = int(line[1])
-                genome_size += chrom_size
+        genome_size = sum(HUMAN_CHROMSOME_SIZES)
         # build the map of terms to regdoms
         termtoregdoms = collections.defaultdict(lambda : [])
         for regdom in regdoms:
@@ -598,35 +618,71 @@ class AssociationMaker:
                     f.write(self.buildLine(term, dartTSSPair, self.termtocoverage[term]))
         f.close()
 
-## DEPRECATED
 if __name__ == '__main__':
-    import sys
-
     from optparse import OptionParser
-    parser = OptionParser(usage="%prog <tssFn> <cut-off> <mean> <standard deviation>",
-                          description=("Determines the maximum possible weight "
-                          "for darts landing in the regulatory domain "
-                          "defined by <tssFn> and <cut-off> with "
-                          "overlapping normal distributions shaped by <mean> and "
-                          "<standard deviation>."
-                          "The file <tssFn> should have a number corresponding "
-                          "to each transcription start site on every line."))
+    parser = OptionParser(usage="%prog <lociFn> <ontoToGeneFn> <dartFn> <inFn> <outFn> <which beta>",
+                          description=(""))
+
     #parser.add_option("-q", "--quiet",
     #                  action="store_false", dest="verbose", default=True,
     #                  help="don't print status messages to stdout")
     
     (options, args) = parser.parse_args()
-    if (len(args) != 4):
+    if (len(args) != 6):
         parser.print_usage()
         sys.exit(1)
 
-    tss    = readPositions(args[0])
-    cutOff = int(args[1])
-    mean   = float(args[2])
-    sd     = float(args[3])
+    lociFn = args[0]
+    ontoToGeneFn = args[1]
+    dartFn = args[2]
+    inFn = sys.argv[3]
+    outFn = sys.argv[4]
+    whichBeta = int(sys.argv[5])
 
-    wgtRegDom = WeightedRegDom(tss, cutOff, mean, sd)
-    r = wgtRegDom.maxDartWgt()
+    # get data/SRFtoTerms.data
+    createRegDomsFileFromTSSs(lociFn, "/tmp/hg18.regDom.bed", 1000000)
+    overlapSelect("/tmp/hg18.regDom.bed", dartFn, "/tmp/regDom.SRF.merge", options="-mergeOutput")
+    assignWeights(1000000, 0, 333333, "/tmp/regDom.SRF.merge", "/tmp/SRF.wgt")
+    maker = GREATx.AssociationMaker("/tmp/SRF.wgt", ontoToGeneFn, "/tmp/hg18.regDom.bed")
+    maker.writeOutput(outFn)
 
-    print repr(r.maxWgt) + "\t" + repr(r.maxWgtDart)
+    # remove /tmp files
+    os.system("rm /tmp/hg18.regDom.bed /tmp/regDom.SRF.merge /tmp/SRF.wgt")
+    
+    inFile = open(inFn)
+    outFile = open(outFn, 'w')
+    
+    weightSum = 0 #Will store our alpha
+    X = 0 #Will store our input probability 
+    
+    lineObjects = []
+    for line in inFile:
+        lineObjects.append(TermDartTSSTriple(line))
+    
+    termIDs = list(set([lineObject.termID for lineObject in lineObjects]))
+    
+    termPValues = {}
+    
+    for termID in termIDs:
+        if termID != 'UNKNOWN':
+            termIDObjects = filter(lambda x: x.termID == termID, lineObjects)
+            weights = [termIDObject.weight for termIDObject in termIDObjects]
+    
+            alpha = sum(weights)
+            x = termIDObjects[0].percentCoverage
+            
+            if whichBeta == 1:
+                beta = len(termIDObjects) - alpha
+            elif whichBeta == 2:
+                beta = len(termIDObjects) * max(weights) - alpha
+            elif whichBeta == 3:
+                wgtRegDom = WeightedRegDom(cutOff=1000000, mean=0, sd=333333)
+                termTSSs = [TSS(position=termIDObject.TSSPosition,\
+                                       geneName=termIDObject.geneName,\
+                                       geneID=termIDObject.geneID,\
+                                       chrName=termIDObject.chrName)\
+                            for termIDObject in termIDObjects]
+                beta = len(termIDObjects) * (wgtRegDom.bestWeightedDart(termTSSs, chromosomes=HUMAN_CHROMOSOMES)).weight
+    
+            outFile.write(termID + "\t" + str(scipy.stats.beta.cdf(x, alpha, beta)) + "\n")
 
