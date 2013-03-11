@@ -45,7 +45,7 @@ import operator
 import scipy.stats
 
 HUMAN_CHROMOSOMES = ['chr' + str(i) for i in range(1,23)] + ['chrX', 'chrY']
-HUMAN_CHROMOSOMES_SIZE = [ 247249719,\
+HUMAN_CHROMOSOME_SIZES = [ 247249719,\
                            242951149,\
                            199501827,\
                            191273063,\
@@ -530,10 +530,10 @@ class AssociationMaker:
     genetoterms = collections.defaultdict(lambda :[])
     termtocoverage = collections.defaultdict(lambda : 0.0)
 
-    def __init__(self, dartsToWeightsFn, geneOntologyFn, regDomFn, chromSizesFn):
+    def __init__(self, dartsToWeightsFn, geneOntologyFn, regDomFn):
         self.readDartWeightsFile(dartsToWeightsFn)
         self.buildGeneTermMap(geneOntologyFn)
-        self.buildTermWeightsMap(regDomFn, chromSizesFn)
+        self.buildTermWeightsMap(regDomFn)
 
     def readDartWeightsFile(self, fstr):
         with open(fstr) as f:
@@ -558,7 +558,7 @@ class AssociationMaker:
             geneID = re.search("\d+", line[1]).group(0)
             self.genetoterms[geneID].append(term_id)
 
-    def buildTermWeightsMap(self, regDomFn, chromSizesFn):
+    def buildTermWeightsMap(self, regDomFn):
         genes = [dartTSSPair.geneID for dartTSSPair in self.dartTSSPairs]
         regdoms = []
         with open(regDomFn) as f:
@@ -566,7 +566,7 @@ class AssociationMaker:
                 line = line.split()
                 if line[4] in genes:
                     regdoms.append(RegDom(int(line[1]),int(line[2]),line[4]))
-        genome_size = sum(HUMAN_CHROMSOME_SIZES)
+        genome_size = sum(HUMAN_CHROMOSOME_SIZES)
         # build the map of terms to regdoms
         termtoregdoms = collections.defaultdict(lambda : [])
         for regdom in regdoms:
@@ -620,7 +620,7 @@ class AssociationMaker:
 
 if __name__ == '__main__':
     from optparse import OptionParser
-    parser = OptionParser(usage="%prog <lociFn> <ontoToGeneFn> <dartFn> <inFn> <outFn> <which beta>",
+    parser = OptionParser(usage="%prog <lociFn> <ontoToGeneFn> <dartFn> <SRFtoTermsFn> <outFn> <which beta>",
                           description=(""))
 
     #parser.add_option("-q", "--quiet",
@@ -635,21 +635,21 @@ if __name__ == '__main__':
     lociFn = args[0]
     ontoToGeneFn = args[1]
     dartFn = args[2]
-    inFn = sys.argv[3]
-    outFn = sys.argv[4]
-    whichBeta = int(sys.argv[5])
+    SRFtoTermsFn = args[3]
+    outFn = args[4]
+    whichBeta = int(args[5])
 
     # get data/SRFtoTerms.data
     createRegDomsFileFromTSSs(lociFn, "/tmp/hg18.regDom.bed", 1000000)
     overlapSelect("/tmp/hg18.regDom.bed", dartFn, "/tmp/regDom.SRF.merge", options="-mergeOutput")
     assignWeights(1000000, 0, 333333, "/tmp/regDom.SRF.merge", "/tmp/SRF.wgt")
-    maker = GREATx.AssociationMaker("/tmp/SRF.wgt", ontoToGeneFn, "/tmp/hg18.regDom.bed")
-    maker.writeOutput(outFn)
+    maker = AssociationMaker("/tmp/SRF.wgt", ontoToGeneFn, "/tmp/hg18.regDom.bed")
+    maker.writeOutput(SRFtoTermsFn)
 
     # remove /tmp files
     os.system("rm /tmp/hg18.regDom.bed /tmp/regDom.SRF.merge /tmp/SRF.wgt")
     
-    inFile = open(inFn)
+    inFile = open(SRFtoTermsFn)
     outFile = open(outFn, 'w')
     
     weightSum = 0 #Will store our alpha
@@ -660,6 +660,7 @@ if __name__ == '__main__':
         lineObjects.append(TermDartTSSTriple(line))
     
     termIDs = list(set([lineObject.termID for lineObject in lineObjects]))
+    dartNames = list(set([lineObject.dartName for lineObject in lineObjects]))
     
     termPValues = {}
     
@@ -668,6 +669,7 @@ if __name__ == '__main__':
             termIDObjects = filter(lambda x: x.termID == termID, lineObjects)
             weights = [termIDObject.weight for termIDObject in termIDObjects]
     
+        
             alpha = sum(weights)
             x = termIDObjects[0].percentCoverage
             
@@ -683,6 +685,18 @@ if __name__ == '__main__':
                                        chrName=termIDObject.chrName)\
                             for termIDObject in termIDObjects]
                 beta = len(termIDObjects) * (wgtRegDom.bestWeightedDart(termTSSs, chromosomes=HUMAN_CHROMOSOMES)).weight
+            elif whichBeta == 4:
+                for dartName in dartNames:
+                    dartNameObjects = filter(lambda x: x.dartName == dartName, termIDObjets)
+                    weight = sum([dartNameObject.weight for dartNameObject in dartNameObjects]) 
+                    weightedDart = GREATx.WeightedDart(chrName=dartNameObjects[0].chrName,\
+                                                       name=dartName,
+                                                       position=dartNameObjects[0].dartPosition,
+                                                       weight=weight)
+                    weightedDarts += weightedDart
+
+                beta = len(weightedDarts) * max([weightedDart.weight for weightedDart in weightedDarts]) - alpha
+
     
             outFile.write(termID + "\t" + str(scipy.stats.beta.cdf(x, alpha, beta)) + "\n")
 
