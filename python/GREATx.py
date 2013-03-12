@@ -1,30 +1,11 @@
 #! /usr/bin/python2.7
-r"""GREAT extension classes
+"""GREAT extension classes
 
 GREATx extends GREAT by assigning weighted hits on regulatory domains on
 the continuous interval [0,1]. By assigning weights in this way,
 we are able to generalize GREAT's Binomial distribution p-value to a
-Beta distribution p-value. In addition, we add new spatial autocorrelation
-statistics to GREAT: Getis-Ord General G global statistic, Moran's I
-global statistic, and Getis-Ord Gi* local statistic.
-
-
-
-Weights are determined for each dart in the regulatory domain by overlapping
-normal distributions centered at each transcription start site. The regulatory
-domain is defined as all bases within the defined cut-off distance of a single
-transcription start site. Each instance of :WeightedRegDom: has the following
-attributes:
-
-    - sorted array of transcription start sites
-    - cut-off distance to define the regulatory domain
-    - mean value for the weight function (usually 0)
-    - standard deviation for the weight function
-
-With these attributes, each instance of :WeightedRegDom: can compute the weight
-assigned to any dart on the genome and determine the maximum weight
-assignment in the regulatory domain.
-
+Beta distribution p-value. In addition, we add the Getis-Ord Gi* local
+statistic -- a spatial autocorrelation statistic.
 """
 
 __author__ = """Charles Celerier <cceleri@cs.stanford.edu>, Yifei Men <ymen@stanford.edu>,
@@ -71,46 +52,114 @@ HUMAN_CHROMOSOME_SIZES = [ 247249719,\
                            57772954]
 
 class Dart:
-    """Dart object with chromosome name and position on the genome attributes"""
+    """Object representing a dart on the human genome
+    
+    Darts are used to represent the darts placed on the genome which GREATx
+    uses for statistical analysis based on those darts' "closeness" to the
+    genes for each term in the list of GREAT ontologies.
 
-    def __init__(self, chrName='', name='', position=-1):
-        self.chrName = chrName
-        self.name = name
-        self.position = int(position)
+    Parameters
+    ----------
+    chrName : str
+              Name of the chromosome where the dart lives. (default = '')
+    name : str
+           Unique dart name. (default = '')
+    position : int
+               Unique dart position. (default = -1)
+
+    Attributes
+    ----------
+    Same as parameters.
+
+    Example
+    --------
+    >>> from GREATx import Dart
+    >>> Dart(chrName='chr1', name='SRF.1', position='1000')
+    GREATx.Dart(chrName="'chr1'", name="'SRF.1'", position='1000')
+    """
+
+    def __init__(self, **kwargs):
+        self.chrName = kwargs.get('chrName', '')
+        self.name = kwargs.get('name', '')
+        self.position = int(kwargs.get('position', -1))
 
     def __str__(self):
-        return "Dart Name: %s\nPosition: %d" % (self.chrName, self.position)
+        return "Dart Name: %s\nName: %s\nPosition: %d" % (self.chrName, self.name, self.position)
 
     def __repr__(self):
-        return 'GREATx.Dart(%r, %r)' % (repr(self.chrName), repr(self.position))
+        return 'GREATx.Dart(chrName=%r, name=%r, position=%r)' % (repr(self.chrName), repr(self.name), repr(self.position))
 
 class WeightedDart(Dart):
-    """Dart with a weight attribute"""
+    """Object representing a dart on the human genome with a weight.
+    
+    A WeightedDart is a Dart with an addition attribute of weight. This object
+    is particularly useful when calculating the Gi local statistic.
 
-    def __init__(self, chrName='', name='', position=-1, weight=-1):
-        self.chrName = chrName
-        self.name = name
-        self.position = position
-        self.weight = weight
+    Parameters
+    ----------
+    chrName : str
+              Name of the chromosome where the dart lives. (default = '')
+    name : str
+           Unique dart name. (default = '')
+    position : int
+               Unique dart position. (default = -1)
+    weight : float
+             Assigned weight. (default = -1)       
+
+    Attributes
+    ----------
+    Same as parameters.
+
+    Example
+    --------
+    >>> from GREATx import WeightedDart
+    >>> WeightedDart(chrName='chr1', name='SRF.1', position=1000, weight=23)
+    GREATx.WeightedDart(chrName="'chr1'", name="'SRF.1'", position='1000', weight='23')
+    """
+
+    def __init__(self, **kwargs):
+        self.weight = kwargs.get('weight', -1)
+        super(WeightedDart, self).__init__(**kwargs)
 
     def __str__(self):
         return Dart.__str__(self) + ("\nWeight: %f" % self.weight)
 
     def __repr__(self):
-        return 'GREATx.WeightedDart(%r, %r, weight=%r)' %\
-                (repr(self.chrName), repr(self.position), repr(self.weight))
+        return 'GREATx.WeightedDart(chrName=%r, name=%r, position=%r, weight=%r)' %\
+                (repr(self.chrName), repr(self.name), repr(self.position), repr(self.weight))
 
 class DartTSSPair:
-    """Dart with a weight attribute relative to a Dart-Gene pair"""
+    """Object representing a dart-TSS pair
+    
+    A DartTSSPair is a Dart with an addition attribute of weight. This object
+    is particularly useful when calculating the Gi local statistic.
 
-    def __init__(self, chrName='', dartName='', dartPosition=-1, TSSPosition=-1, weight=-1, geneName='', geneID=''):
-        self.chrName = chrName
-        self.dartName = dartName
-        self.dartPosition = dartPosition
-        self.TSSPosition = TSSPosition
-        self.weight = weight
-        self.geneName = geneName
-        self.geneID = geneID
+    Parameters
+    ----------
+    chrName : str
+              Name of the chromosome where the dart lives. (default = '')
+    name : str
+           Unique dart name. (default = '')
+    position : int
+               Unique dart position. (default = -1)
+    weight : float
+             Assigned weight. (default = -1)       
+
+    Attributes
+    ----------
+    Same as parameters.
+
+    Example
+    --------
+
+    def __init__(self, **kwargs):chrName='', dartName='', dartPosition=-1, TSSPosition=-1, weight=-1, geneName='', geneID=''):
+        self.chrName = kwargs.get('chrName', '')
+        self.dartName = kwargs.get('dartName', '')
+        self.dartPosition = kwargs.get('dartPosition', '')
+        self.TSSPosition = int(kwargs.get('TSSPosition', -1))
+        self.weight = int(kwargs.get('weight', -1))
+        self.geneName = kwargs.get('geneName', '')
+        self.geneID = kwargs.get('geneID', '')
 
     def __str__(self):
         return "\t".join([self.chrName, self.dartName, str(self.dartPosition), self.geneName, self.geneID, str(self.TSSPosition), str(self.weight)])
@@ -168,7 +217,21 @@ class WeightedRegDom:
     >>> Dart = Dart('myDart', 14)
     >>> TSS = TSS('chr123', 'myGene', 'myGeneID', 20)
     >>> DartTSSPair = wgtRegDom.makeDartTSSPair(Dart,TSS)
+
+    Weights are determined for each dart in the regulatory domain by overlapping
+    normal distributions centered at each transcription start site. The regulatory
+    domain is defined as all bases within the defined cut-off distance of a single
+    transcription start site. Each instance of :WeightedRegDom: has the following
+    attributes:
     
+        - sorted array of transcription start sites
+        - cut-off distance to define the regulatory domain
+        - mean value for the weight function (usually 0)
+        - standard deviation for the weight function
+    
+    With these attributes, each instance of :WeightedRegDom: can compute the weight
+    assigned to any dart on the genome and determine the maximum weight
+    assignment in the regulatory domain.
     """
 
     def __init__(self, cutOff=1000000, mean=0.0, sd=333333):
