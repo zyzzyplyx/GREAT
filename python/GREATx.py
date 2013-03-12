@@ -10,11 +10,11 @@ statistic -- a spatial autocorrelation statistic.
 
 __author__ = """Ahmed Bou-Rabee <bourabee@stanford.edu>,
                 Andrew Stiles <aostiles@stanford.edu>,
-                Charles Celerier <cceleri@cs.stanford.edu>, 
+                Charles Celerier <cceleri@cs.stanford.edu>,
                 Nicholas Damien McGee <ndmcgee@cs.stanford.edu>
                 Steven Lee <slee2010@stanford.edu>, and
                 Yifei Men <ymen@stanford.edu>"""
-            
+
 __date__ = """13 March 2012"""
 
 __credits__ = """Gill Bejerano, for a thrilling tour of the genome.
@@ -58,7 +58,7 @@ HUMAN_CHROMOSOME_SIZES = [ 247249719,\
 
 class Dart:
     """Object representing a dart on the human genome
-    
+
     Darts are used to represent the darts placed on the genome which GREATx
     uses for statistical analysis based on those darts' "closeness" to the
     genes for each term in the list of GREAT ontologies.
@@ -98,7 +98,7 @@ class Dart:
 
 class WeightedDart(Dart):
     """Object representing a dart on the human genome with a weight.
-    
+
     A WeightedDart is a Dart with an addition attribute of weight. This
     object is particularly useful when calculating the Gi local statistic.
 
@@ -111,7 +111,7 @@ class WeightedDart(Dart):
     position : int
                Unique dart position. (default = -1)
     weight : float
-             Assigned weight. (default = -1)       
+             Assigned weight. (default = -1)
 
     Attributes
     ----------
@@ -139,7 +139,7 @@ class WeightedDart(Dart):
 
 class DartTSSPair:
     """Object representing a dart-TSS pair
-    
+
     A DartTSSPair is a Dart with an addition attribute of weight. This object
     is particularly useful when calculating the Gi local statistic.
 
@@ -152,7 +152,7 @@ class DartTSSPair:
     position : int
                Unique dart position. (default = -1)
     weight : float
-             Assigned weight. (default = -1)       
+             Assigned weight. (default = -1)
 
     Attributes
     ----------
@@ -230,13 +230,13 @@ class WeightedRegDom:
     Examples
     --------
     Find the best position for a dart in a regulatory domain
-    
+
     >>> TSSs = [GREATx.TSS(chrName='chr123', geneName='tss', geneID='1234', position=i) for i in range(10)]
     >>> wgtRegDom = GREATx.WeightedRegDom(cutOff=2, mean=0.0, sd=3)
     >>> bestWeightedDart = wgtRegDom.bestWeightedDart(TSSs)
-    
+
     Get a DartTSSPair
-    
+
     >>> wgtRegDom = GREATx.WeightedRegDom(TSSs, cutOff=2, mean=0.0, sd=3)
     >>> Dart = Dart('myDart', 14)
     >>> TSS = TSS('chr123', 'myGene', 'myGeneID', 20)
@@ -255,7 +255,7 @@ class WeightedRegDom:
     # note that this algorithm is okay because transcriptionStartSites is sorted
     def bestWeightedDart(self, TSSs, chromosomes=HUMAN_CHROMOSOMES):
         """Returns the best WeightedDart for the given TSSs
-        
+
         This method stupidly visits every base within the regulatory
         domain to determin which would be the best place to put a
         dart. A lot of work can be done to improve this algorithm.
@@ -356,7 +356,7 @@ class TermDartTSSTriple:
     >>> lineObjects = []
     >>> for line in inFile:
     >>>     lineObjects.append(TermDartTSSTriple(line))
-    >>> 
+    >>>
     >>> termIDs = list(set([lineObject.termID for lineObject in lineObjects]))
     >>> dartNames = list(set([lineObject.dartName for lineObject in lineObjects]))
     """
@@ -488,7 +488,7 @@ class LociRegulatoryRegion(Loci):
     --------
     >>> loci = open(lociFn, 'r')
     >>> regDom = open(regDomFn, 'w')
-    >>> 
+    >>>
     >>> for line in loci:
     >>>     regDom.write(str(LociRegulatoryRegion(line,cutOff=cutOff)) + '\n')
     """
@@ -520,10 +520,10 @@ class LociRegulatoryRegion(Loci):
 
 def createRegDomsFileFromTSSs(lociFn, regDomFn, cutOff):
     """Expands Loci file into a regulator regions file
-    
+
     Parameters
     ----------
-    
+
     lociFn : str
              name of file containing loci (e.g. hg18.loci)
     regDomFn : str
@@ -534,7 +534,7 @@ def createRegDomsFileFromTSSs(lociFn, regDomFn, cutOff):
     """
     loci = open(lociFn, 'r')
     regDom = open(regDomFn, 'w')
-    
+
     for line in loci:
         regDom.write(str(LociRegulatoryRegion(line,cutOff=cutOff)) + '\n')
 
@@ -555,25 +555,25 @@ def overlapSelect(regDomFn, dartFn, mergedFn, options=''):
     Usage
     -----
     Note: This usage docstring is from the program overlapSelect
-    
+
     overlapSelect [options] selectFile inFile outFile
-    
+
     Select records based on overlaping chromosome ranges.  The ranges are
     specified in the selectFile, with each block specifying a range.
     Records are copied from the inFile to outFile based on the selection
     criteria.  Selection is based on blocks or exons rather than entire
     range.
-    
+
     Options starting with -select* apply to selectFile and those starting
     with -in* apply to inFile.
-    
+
     Options:
       -selectFmt=fmt - specify selectFile format:
               psl - PSL format (default for *.psl files).
               genePred - gepePred format (default for *.gp or
                          *.genePred files).
               bed - BED format (default for *.bed files).
-                    If BED doesn't have blocks, the bed range is used. 
+                    If BED doesn't have blocks, the bed range is used.
       -selectCoordCols=spec - selectFile is tab-separate with coordinates
            as described by spec, which is one of:
                 o chromCol - chrom in this column followed by start and end.
@@ -597,7 +597,7 @@ def overlapSelect(regDomFn, dartFn, mergedFn, options=''):
           Warning: using only one of -inCds or -selectCds will result in different
           coordinates for the same record.
       -idMatch - only select overlapping records if they have the same id
-      -aggregate - instead of computing overlap bases on individual select entries, 
+      -aggregate - instead of computing overlap bases on individual select entries,
           compute it based on the total number of inFile bases overlap by selectFile
           records. -overlapSimilarity and -mergeOutput will not work with
           this option.
@@ -616,7 +616,7 @@ def overlapSelect(regDomFn, dartFn, mergedFn, options=''):
       -overlapSimilarityCeil=1.1 - select only inFile records with less than
           this amount of similarity with a single record.
       -overlapBases=-1 - minimum number of bases of overlap, < 0 disables.
-      -statsOutput - output overlap statistics instead of selected records. 
+      -statsOutput - output overlap statistics instead of selected records.
           If no overlap criteria is specified, all overlapping entries are
           reported, Otherwise only the pairs passing the citeria are
           reported. This results in a tab-seperated file with the columns:
@@ -639,7 +639,7 @@ def overlapSelect(regDomFn, dartFn, mergedFn, options=''):
       -dropped=file  - output rows that were dropped to this file.
       -verbose=n - verbose > 1 prints some details,
     """
-    
+
     program = "/afs/ir/class/cs173/bin/i386_linux26/overlapSelect"
     os.system(" ".join([program, options, regDomFn, dartFn, mergedFn]))
 
@@ -665,7 +665,7 @@ def assignWeights(cutOff, mean, sd, mergedFn, dartsToWeightsFn):
         line = line.split()
 
         dart.chrName = line[0]
-        dart.name = line[3] 
+        dart.name = line[3]
         dart.position = (int(line[1]) + int(line[2]))/2
 
         tss.chrName = line[4]
@@ -789,7 +789,7 @@ if __name__ == '__main__':
     #parser.add_option("-q", "--quiet",
     #                  action="store_false", dest="verbose", default=True,
     #                  help="don't print status messages to stdout")
-    
+
     (options, args) = parser.parse_args()
     if (len(args) != 6):
         parser.print_usage()
@@ -814,39 +814,48 @@ if __name__ == '__main__':
 
     # remove /tmp files
     os.system("rm /tmp/hg18.regDom.bed /tmp/regDom.SRF.merge /tmp/SRF.wgt")
-    
+
     inFile = open(SRFtoTermsFn)
     outFile = open(outFn, 'w')
-    
+
     weightSum = 0 #Will store our alpha
-    X = 0 #Will store our input probability 
-    
+    X = 0 #Will store our input probability
+
     lineObjects = []
     for line in inFile:
         lineObjects.append(TermDartTSSTriple(line))
-    
+
     termIDs = list(set([lineObject.termID for lineObject in lineObjects]))
     dartNames = list(set([lineObject.dartName for lineObject in lineObjects]))
-    
+
     termPValues = {}
-    
+
+    dartMaxWeights = {}
+    if whichBeta == 5:
+        for dartName in dartNames:
+            dartNameObjects = filter(lambda x: x.dartName == dartName, lineObjects)
+            weight = max([dartNameObject.weight for dartNameObject in dartNameObjects])
+            dartMaxWeights[dartName] = weight
+
     for termID in termIDs:
         if termID != 'UNKNOWN':
             termIDObjects = filter(lambda x: x.termID == termID, lineObjects)
             weights = [termIDObject.weight for termIDObject in termIDObjects]
             genes = list(set([termIDObject.geneName for termIDObject in termIDObjects]))
-    
-        
+
+
             alpha = sum(weights)
             x = termIDObjects[0].percentCoverage
-            
+
             ## new possibility for x?
             #wgtDist = norm(self.mean, self.sd)
             #x = len(genes)*len(wgtDist.cdf(cutOff) - wgtDist.cdf(-cutOff))\
             #        /sum(HUMAN_CHROMOSOME_SIZES)
-            
+
+            #Basic beta, assumes max score is 1 for all darts
             if whichBeta == 1:
                 beta = len(termIDObjects) - alpha
+            #Assumes max score is the max of all darts hitting this term
             elif whichBeta == 2:
                 beta = len(termIDObjects) * max(weights) - alpha
             elif whichBeta == 3:
@@ -860,15 +869,18 @@ if __name__ == '__main__':
             elif whichBeta == 4:
                 for dartName in dartNames:
                     dartNameObjects = filter(lambda x: x.dartName == dartName, termIDObjets)
-                    weight = sum([dartNameObject.weight for dartNameObject in dartNameObjects]) 
+                    weight = sum([dartNameObject.weight for dartNameObject in dartNameObjects])
                     weightedDart = GREATx.WeightedDart(chrName=dartNameObjects[0].chrName,\
                                                        name=dartName,
                                                        position=dartNameObjects[0].dartPosition,
                                                        weight=weight)
                     weightedDarts += weightedDart
-
                 beta = len(weightedDarts) * max([weightedDart.weight for weightedDart in weightedDarts]) - alpha
+            #Assumes max score for a given dart is the highest score achieved by
+            # that dart on any term
+            elif whichBeta == 5:
+                totalSuccess = map(lambda x: dartMaxWeights[x.dartName], termIDObjects)
+                beta = sum(totalSuccess) - alpha
 
-    
             outFile.write(termID + "\t" + str(scipy.stats.beta.cdf(x, alpha, beta)) + "\n")
 
