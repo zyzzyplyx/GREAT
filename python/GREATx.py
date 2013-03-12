@@ -89,16 +89,18 @@ class Dart:
         self.position = int(kwargs.get('position', -1))
 
     def __str__(self):
-        return "Dart Name: %s\nName: %s\nPosition: %d" % (self.chrName, self.name, self.position)
+        return "Dart Name: %s\nName: %s\nPosition: %d" % \
+                (self.chrName, self.name, self.position)
 
     def __repr__(self):
-        return 'GREATx.Dart(chrName=%r, name=%r, position=%r)' % (repr(self.chrName), repr(self.name), repr(self.position))
+        return 'GREATx.Dart(chrName=%r, name=%r, position=%r)' % \
+                (repr(self.chrName), repr(self.name), repr(self.position))
 
 class WeightedDart(Dart):
     """Object representing a dart on the human genome with a weight.
     
-    A WeightedDart is a Dart with an addition attribute of weight. This object
-    is particularly useful when calculating the Gi local statistic.
+    A WeightedDart is a Dart with an addition attribute of weight. This
+    object is particularly useful when calculating the Gi local statistic.
 
     Parameters
     ----------
@@ -130,8 +132,10 @@ class WeightedDart(Dart):
         return Dart.__str__(self) + ("\nWeight: %f" % self.weight)
 
     def __repr__(self):
-        return 'GREATx.WeightedDart(chrName=%r, name=%r, position=%r, weight=%r)' %\
-                (repr(self.chrName), repr(self.name), repr(self.position), repr(self.weight))
+        return 'GREATx.WeightedDart(\
+                chrName=%r, name=%r, position=%r, weight=%r)' % \
+                (repr(self.chrName), repr(self.name), repr(self.position),\
+                repr(self.weight))
 
 class DartTSSPair:
     """Object representing a dart-TSS pair
@@ -181,7 +185,7 @@ class DartTSSPair:
                 repr(self.weight), repr(self.geneName), repr(self.geneID))
 
 class TSS:
-    """TSS object with chromosome name, gene name, gene id, and position on the genome attributes"""
+    """Object representing a TSS"""
 
     def __init__(self, position=-1, geneName='', geneID='', chrName=''):
         self.chrName = chrName
@@ -199,28 +203,35 @@ class TSS:
                 repr(self.geneID), repr(self.chrName))
 
 class WeightedRegDom:
-    """
-    Factory to compute dart weights in a regulatory domain
+    """Object used to compute dart weights in a regulatory domain
+
+    Weights are determined for each dart in the regulatory domain by overlapping
+    normal distributions centered at each transcription start site. The
+    regulatory domain is defined as all bases within the defined cut-off
+    distance of a single transcription start site.
 
     Parameters
     ----------
-    TSSs : array of TSS objects
-    cutOff : maximum distance an dart can be from
+    cutOff : int
+             maximum distance an dart can be from
              a transcription start site to be
              assigned any weight from it
-    mean : mean value of the normal distribution
+    mean : float
+           mean value of the normal distribution
            for calculating weights
-    sd : standard deviation of the normal distribution
+    sd : float
+         standard deviation of the normal distribution
          for calculating weights
-    
+
+    Attributes
+    ----------
+    Same as parameters.
+
     Examples
     --------
-
     Find the best position for a dart in a regulatory domain
     
-    >>> TSSs = [GREATx.TSS(\
-            chrName='chr123', geneName='tss', geneID='1234', position=i)\
-            for i in range(10)]
+    >>> TSSs = [GREATx.TSS(chrName='chr123', geneName='tss', geneID='1234', position=i) for i in range(10)]
     >>> wgtRegDom = GREATx.WeightedRegDom(cutOff=2, mean=0.0, sd=3)
     >>> bestWeightedDart = wgtRegDom.bestWeightedDart(TSSs)
     
@@ -230,21 +241,6 @@ class WeightedRegDom:
     >>> Dart = Dart('myDart', 14)
     >>> TSS = TSS('chr123', 'myGene', 'myGeneID', 20)
     >>> DartTSSPair = wgtRegDom.makeDartTSSPair(Dart,TSS)
-
-    Weights are determined for each dart in the regulatory domain by overlapping
-    normal distributions centered at each transcription start site. The regulatory
-    domain is defined as all bases within the defined cut-off distance of a single
-    transcription start site. Each instance of :WeightedRegDom: has the following
-    attributes:
-    
-        - sorted array of transcription start sites
-        - cut-off distance to define the regulatory domain
-        - mean value for the weight function (usually 0)
-        - standard deviation for the weight function
-    
-    With these attributes, each instance of :WeightedRegDom: can compute the weight
-    assigned to any dart on the genome and determine the maximum weight
-    assignment in the regulatory domain.
     """
 
     def __init__(self, cutOff=1000000, mean=0.0, sd=333333):
@@ -258,10 +254,12 @@ class WeightedRegDom:
 
     # note that this algorithm is okay because transcriptionStartSites is sorted
     def bestWeightedDart(self, TSSs, chromosomes=HUMAN_CHROMOSOMES):
-        """Defines the bestWeightedDart attribute
+        """Returns the best WeightedDart for the given TSSs
         
-        Doing this may take a while, so this attribute is only calculated if
-        the user wants it.
+        This method stupidly visits every base within the regulatory
+        domain to determin which would be the best place to put a
+        dart. A lot of work can be done to improve this algorithm.
+        It is too slow to do anything reasonable with it.
         """
 
         bestWeightedDart = WeightedDart('', -1, weight=-1)
@@ -322,12 +320,51 @@ class WeightedRegDom:
             return None
 
 class TermDartTSSTriple:
+    """Object used to parse data from the output file of AssociationMaker
+
+    This object is primarily used to parse the output file of AssociationMaker
+    into an array of objects, one for each line of the file. The name is
+    awkward, but this object gets the job done.
+
+    Parameters
+    ----------
+    termID : str
+             unique term id
+    chrName : str
+              chromosome name
+    dartName : str
+               unique dart name
+    dartPosition : int
+                   unique dart position
+    geneName : str
+               unique gene name
+    geneID : str
+             unique gene id
+    TSSPosition : int
+                  unique TSS position
+    weight : float
+             weight for the dart-TSS pair
+    percentCoverage : float
+                      percent of the genome covered by this term id
+
+    Attributes
+    ----------
+    Same as parameters.
+
+    Example
+    --------
+    >>> lineObjects = []
+    >>> for line in inFile:
+    >>>     lineObjects.append(TermDartTSSTriple(line))
+    >>> 
+    >>> termIDs = list(set([lineObject.termID for lineObject in lineObjects]))
+    >>> dartNames = list(set([lineObject.dartName for lineObject in lineObjects]))
+    """
 
     def __init__(self, tripleLine):
         self._parseTermDartTSSTripleLine(tripleLine)
 
     def _parseTermDartTSSTripleLine(self, tripleLine):
-        """Read fields of tripleLine into object attributes."""
         line = tripleLine.split()
         self.termID = line[0]
         self.chrName = line[1]
@@ -365,7 +402,32 @@ class TermDartTSSTriple:
 
 
 class Loci:
-    """Loci object with lots of different attributes."""
+    """Object to represent a loci
+
+    This object is a convenient way to represent a loci and its attributes.
+    The primary role of this object is to parse the loci lines in a file
+    like hg18.loci.
+
+    Parameters
+    ----------
+    chrName : str
+              chromosome name
+    TSSPosition : int
+                  unique TSS position
+    geneName : str
+               unique gene name
+    geneID : str
+             unique gene id
+    strand : str
+             +/- for upstream or down stream
+
+    Attributes
+    ----------
+    Same as parameters.
+
+    Example
+    --------
+    """
 
     def __init__(self, lociLine):
         self._parseLociLine(lociLine)
@@ -393,15 +455,49 @@ class Loci:
                 repr(self.chrName),\
                 repr(self.TSSPosition),\
                 repr(self.strand),\
-                repr(self.geneName)])), repr(regSz))
+                repr(self.geneName)])), repr(cutOff))
 
 class LociRegulatoryRegion(Loci):
-    """Regulatory region object with lots of different attributes."""
+    """Object representing a loci expanded into a regulatory region
+
+    This object uses its parent class to parse a loci line in a file
+    like hg18.loci and can write a tab delimited line which includes
+    the regulatory region for the loci specificed by cutOff in the
+    paramaters during instantiation.
+
+    Parameters
+    ----------
+    chrName : str
+              chromosome name
+    TSSPosition : int
+                  unique TSS position
+    geneName : str
+               unique gene name
+    geneID : str
+             unique gene id
+    strand : str
+             +/- for upstream or down stream
+    cutOff : int
+            desired size of the regulatory region for each loci
+
+    Attributes
+    ----------
+    Same as parameters.
+
+    Example
+    --------
+    >>> loci = open(lociFn, 'r')
+    >>> regDom = open(regDomFn, 'w')
+    >>> 
+    >>> for line in loci:
+    >>>     regDom.write(str(LociRegulatoryRegion(line,cutOff=cutOff)) + '\n')
+    """
+
     def __init__(self, *args, **kwargs):
         Loci.__init__(self, *args)
-        regSz = kwargs.pop('regSz')
-        self.regStart = max(0, int(self.TSSPosition) - regSz)
-        self.regEnd = int(self.TSSPosition) + regSz
+        cutOff = kwargs.pop('cutOff')
+        self.regStart = max(0, int(self.TSSPosition) - cutOff)
+        self.regEnd = int(self.TSSPosition) + cutOff
 
     def __str__(self):
         return "\t".join([\
@@ -414,40 +510,47 @@ class LociRegulatoryRegion(Loci):
                 str(self.TSSPosition)])
 
     def __repr__(self):
-        return "LociRegulatoryRegion(%r, regSz=%r)" % (repr("\t".join([\
+        return "LociRegulatoryRegion(%r, cutOff=%r)" % (repr("\t".join([\
                 repr(self.geneName),\
                 repr(self.chrName),\
                 repr(self.TSSPosition),\
                 repr(self.strand),\
                 repr(self.geneName),\
-                repr(self.strand)])), repr(regSz))
+                repr(self.strand)])), repr(cutOff))
 
-def createRegDomsFileFromTSSs(lociFn, regDomFn, regSz):
+def createRegDomsFileFromTSSs(lociFn, regDomFn, cutOff):
     """Expands Loci file into a regulator regions file
     
     Parameters
     ----------
     
-    lociFn :  name of file containing loci (e.g. hg18.loci)
-    regDomFn : name of file to contain the created regulatory regions (e.g. hg18.regDom.bed)
-    regSz : cut-off for regulatory regions
-
+    lociFn : str
+             name of file containing loci (e.g. hg18.loci)
+    regDomFn : str
+               name of file to contain the created regulatory regions
+               (e.g. hg18.regDom.bed)
+    cutOff : int
+             cut-off for regulatory regions
     """
     loci = open(lociFn, 'r')
     regDom = open(regDomFn, 'w')
     
     for line in loci:
-        regDom.write(str(LociRegulatoryRegion(line,regSz=regSz)) + '\n')
+        regDom.write(str(LociRegulatoryRegion(line,cutOff=cutOff)) + '\n')
 
 def overlapSelect(regDomFn, dartFn, mergedFn, options=''):
     """Runs overlapselect <options> <regDomFn> <dartFn> <mergedFn>.
 
     Parameters
     ----------
-    selectFile :  name of file containing loci (e.g. hg18.loci)
-    inFile : name of file to contain the created regulatory regions (e.g. hg18.regDom.bed)
-    outFile : cut-off for regulatory regions
-    options : space delemited list of options (e.g. "-selectFmt=bed -mergeOutput")
+    selectFile : str
+                 name of file containing loci (e.g. hg18.loci)
+    inFile : str
+             name of file to contain the created regulatory regions (e.g. hg18.regDom.bed)
+    outFile : str
+              cut-off for regulatory regions
+    options : str
+              space delemited list of options (e.g. "-selectFmt=bed -mergeOutput")
 
     Usage
     -----
@@ -539,23 +642,6 @@ def overlapSelect(regDomFn, dartFn, mergedFn, options=''):
     
     program = "/afs/ir/class/cs173/bin/i386_linux26/overlapSelect"
     os.system(" ".join([program, options, regDomFn, dartFn, mergedFn]))
-
-#def getTSSs(lociFn):
-#    """Returns transcription start sites in a dictionary for each chromosome"""
-#    loci = open(lociFn, 'r')
-#    TSSs = {}
-#
-#    for line in loci:
-#        line = line.split()
-#        chrName = line[1]
-#        TSSPosition = line[2]
-#        
-#        if (not (chrName in TSSs)):
-#            TSSs[chrName] = [TSSPosition]
-#        else:
-#            TSSs[chrName].append(TSSPosition)
-#
-#    return TSSs
 
 def assignWeights(cutOff, mean, sd, mergedFn, dartsToWeightsFn):
     """Writes to dartsToWeightsFn each dart with the geneName, geneID, and weight
@@ -696,7 +782,8 @@ class AssociationMaker:
 
 if __name__ == '__main__':
     from optparse import OptionParser
-    parser = OptionParser(usage="%prog <lociFn> <ontoToGeneFn> <dartFn> <SRFtoTermsFn> <outFn> <which beta>",
+    parser = OptionParser(usage="%prog <lociFn> <ontoToGeneFn> <dartFn> <SRFtoTermsFn> <outFn> \
+            <cutOff> <mean> <sd> <which beta>",
                           description=(""))
 
     #parser.add_option("-q", "--quiet",
@@ -713,12 +800,15 @@ if __name__ == '__main__':
     dartFn = args[2]
     SRFtoTermsFn = args[3]
     outFn = args[4]
-    whichBeta = int(args[5])
+    cutOff = int(args[5])
+    mean = float(args[6])
+    sd = float(args[7])
+    whichBeta = int(args[8])
 
     # get data/SRFtoTerms.data
     createRegDomsFileFromTSSs(lociFn, "/tmp/hg18.regDom.bed", 1000000)
     overlapSelect("/tmp/hg18.regDom.bed", dartFn, "/tmp/regDom.SRF.merge", options="-mergeOutput")
-    assignWeights(1000000, 0, 333333, "/tmp/regDom.SRF.merge", "/tmp/SRF.wgt")
+    assignWeights(cutOff, mean, sd, "/tmp/regDom.SRF.merge", "/tmp/SRF.wgt")
     maker = AssociationMaker("/tmp/SRF.wgt", ontoToGeneFn, "/tmp/hg18.regDom.bed")
     maker.writeOutput(SRFtoTermsFn)
 
@@ -744,10 +834,16 @@ if __name__ == '__main__':
         if termID != 'UNKNOWN':
             termIDObjects = filter(lambda x: x.termID == termID, lineObjects)
             weights = [termIDObject.weight for termIDObject in termIDObjects]
+            genes = list(set([termIDObject.geneName for termIDObject in termIDObjects]))
     
         
             alpha = sum(weights)
             x = termIDObjects[0].percentCoverage
+            
+            ## new possibility for x?
+            #wgtDist = norm(self.mean, self.sd)
+            #x = len(genes)*len(wgtDist.cdf(cutOff) - wgtDist.cdf(-cutOff))\
+            #        /sum(HUMAN_CHROMOSOME_SIZES)
             
             if whichBeta == 1:
                 beta = len(termIDObjects) - alpha
