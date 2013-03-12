@@ -27,9 +27,13 @@ assignment in the regulatory domain.
 
 """
 
-__author__ = """Charles Celerier <cceleri@cs.stanford.edu>, Yifei Men <ymen@stanford.edu>,
-            Ahmed Bou-Rabee <bourabee@stanford.edu>, Andrew Stiles <aostiles@stanford.edu>,
-            Steven Lee <slee2010@stanford.edu>, and Nicholas Damien McGee <ndmcgee@cs.stanford.edu>"""
+__author__ = """Ahmed Bou-Rabee <bourabee@stanford.edu>,
+                Andrew Stiles <aostiles@stanford.edu>,
+                Charles Celerier <cceleri@cs.stanford.edu>, 
+                Nicholas Damien McGee <ndmcgee@cs.stanford.edu>
+                Steven Lee <slee2010@stanford.edu>, and
+                Yifei Men <ymen@stanford.edu>"""
+            
 __date__ = """13 March 2012"""
 
 __credits__ = """Gill Bejerano, for a thrilling tour of the genome.
@@ -44,6 +48,7 @@ import os
 import operator
 import scipy.stats
 
+# these are the hard-coded human chromosome names and sizes
 HUMAN_CHROMOSOMES = ['chr' + str(i) for i in range(1,23)] + ['chrX', 'chrY']
 HUMAN_CHROMOSOME_SIZES = [ 247249719,\
                            242951149,\
@@ -103,7 +108,8 @@ class WeightedDart(Dart):
 class DartTSSPair:
     """Dart with a weight attribute relative to a Dart-Gene pair"""
 
-    def __init__(self, chrName='', dartName='', dartPosition=-1, TSSPosition=-1, weight=-1, geneName='', geneID=''):
+    def __init__(self, chrName='', dartName='', dartPosition=-1,\
+            TSSPosition=-1, weight=-1, geneName='', geneID=''):
         self.chrName = chrName
         self.dartName = dartName
         self.dartPosition = dartPosition
@@ -113,11 +119,16 @@ class DartTSSPair:
         self.geneID = geneID
 
     def __str__(self):
-        return "\t".join([self.chrName, self.dartName, str(self.dartPosition), self.geneName, self.geneID, str(self.TSSPosition), str(self.weight)])
+        return "\t".join([self.chrName, self.dartName, str(self.dartPosition),\
+                self.geneName, self.geneID, str(self.TSSPosition),\
+                str(self.weight)])
 
     def __repr__(self):
-        return 'GREATx.DartTSSPair(chrName=%r, dartName=%r, dartPosition=%r, TSSPosition=%r, weight=%r, geneName=%r, geneID=%r)' %\
-                (repr(self.chrName), repr(self.dartName), repr(self.dartPosition), repr(self.TSSPosition), repr(self.weight), repr(self.geneName), repr(self.geneID))
+        return 'GREATx.DartTSSPair(chrName=%r, dartName=%r, dartPosition=%r, \
+                TSSPosition=%r, weight=%r, geneName=%r, geneID=%r)' %\
+                (repr(self.chrName), repr(self.dartName),\
+                repr(self.dartPosition), repr(self.TSSPosition),\
+                repr(self.weight), repr(self.geneName), repr(self.geneID))
 
 class TSS:
     """TSS object with chromosome name, gene name, gene id, and position on the genome attributes"""
@@ -134,7 +145,8 @@ class TSS:
 
     def __repr__(self):
         return 'GREATx.TSS(position=%r, geneName=%r, geneID=%r, chrName=%r)'%\
-                (repr(self.position), repr(self.geneName), repr(self.geneID), repr(self.chrName))
+                (repr(self.position), repr(self.geneName),\
+                repr(self.geneID), repr(self.chrName))
 
 class WeightedRegDom:
     """
