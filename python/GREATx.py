@@ -7,7 +7,6 @@ we are able to generalize GREAT's Binomial distribution p-value to a
 Beta distribution p-value. In addition, we add the Getis-Ord Gi* local
 statistic -- a spatial autocorrelation statistic.
 """
-
 __author__ = """Ahmed Bou-Rabee <bourabee@stanford.edu>,
                 Andrew Stiles <aostiles@stanford.edu>,
                 Charles Celerier <cceleri@cs.stanford.edu>,
@@ -400,7 +399,6 @@ class TermDartTSSTriple:
                 repr(self.weight),\
                 repr(self.percentCoverage)])))
 
-
 class Loci:
     """Object to represent a loci
 
@@ -537,6 +535,36 @@ def createRegDomsFileFromTSSs(lociFn, regDomFn, cutOff):
 
     for line in loci:
         regDom.write(str(LociRegulatoryRegion(line,cutOff=cutOff)) + '\n')
+
+def buildOntoTermsDict(ontoTermsFn):
+    """ Takes a mapping of GO numbers to their actual names and builds a dict
+
+    Parameters
+    ----------
+    ontoTermsFn: filename of a term->"term description" file with the first two
+    columns of this format:
+
+    GO:termnumber \t "term description
+
+    """
+    ontoTerms = {}
+    for line in open(ontoTermsFn):
+        line = line.split('\t')
+        ontoTerms[line[0].split(':')[1]] = line[1]
+    return ontoTerms
+
+def buildMaxDartWeights(dartNames, lineObjects):
+    dartMaxWeights = {}
+    count = 0
+    print("Starting dartMaxWeights calculation on "+str(len(dartNames))+" darts")
+    for dartName in dartNames:
+        count += 1
+        if(count % 50 == 0): print(str(count))
+        dartNameObjects = filter(lambda x: x.dartName == dartName, lineObjects)
+        weight = max([dartNameObject.weight for dartNameObject in dartNameObjects])
+        dartMaxWeights[dartName] = weight
+    print("~~~~~~~~~~~~~~Finished")
+    return dartMaxWeights
 
 def overlapSelect(regDomFn, dartFn, mergedFn, options=''):
     """Runs overlapselect <options> <regDomFn> <dartFn> <mergedFn>.
@@ -783,7 +811,7 @@ class AssociationMaker:
 if __name__ == '__main__':
     from optparse import OptionParser
     parser = OptionParser(usage="%prog <lociFn> <ontoToGeneFn> <dartFn> <SRFtoTermsFn> <outFn> \
-            <cutOff> <mean> <sd> <which beta>",
+            <cutOff> <mean> <sd> <which beta> <ontoTermFn>",
                           description=(""))
 
     #parser.add_option("-q", "--quiet",
@@ -791,7 +819,7 @@ if __name__ == '__main__':
     #                  help="don't print status messages to stdout")
 
     (options, args) = parser.parse_args()
-    if (len(args) != 6):
+    if (len(args) != 10):
         parser.print_usage()
         sys.exit(1)
 
@@ -804,16 +832,17 @@ if __name__ == '__main__':
     mean = float(args[6])
     sd = float(args[7])
     whichBeta = int(args[8])
+    ontoTermsFn = args[9]
 
-    # get data/SRFtoTerms.data
-    createRegDomsFileFromTSSs(lociFn, "/tmp/hg18.regDom.bed", 1000000)
-    overlapSelect("/tmp/hg18.regDom.bed", dartFn, "/tmp/regDom.SRF.merge", options="-mergeOutput")
-    assignWeights(cutOff, mean, sd, "/tmp/regDom.SRF.merge", "/tmp/SRF.wgt")
-    maker = AssociationMaker("/tmp/SRF.wgt", ontoToGeneFn, "/tmp/hg18.regDom.bed")
-    maker.writeOutput(SRFtoTermsFn)
+    # # get data/SRFtoTerms.data
+    # createRegDomsFileFromTSSs(lociFn, "/tmp/hg18.regDom.bed", 1000000)
+    # overlapSelect("/tmp/hg18.regDom.bed", dartFn, "/tmp/regDom.SRF.merge", options="-mergeOutput")
+    # assignWeights(cutOff, mean, sd, "/tmp/regDom.SRF.merge", "/tmp/SRF.wgt")
+    # maker = AssociationMaker("/tmp/SRF.wgt", ontoToGeneFn, "/tmp/hg18.regDom.bed")
+    # maker.writeOutput(SRFtoTermsFn)
 
-    # remove /tmp files
-    os.system("rm /tmp/hg18.regDom.bed /tmp/regDom.SRF.merge /tmp/SRF.wgt")
+    # # remove /tmp files
+    # os.system("rm /tmp/hg18.regDom.bed /tmp/regDom.SRF.merge /tmp/SRF.wgt")
 
     inFile = open(SRFtoTermsFn)
     outFile = open(outFn, 'w')
@@ -830,15 +859,20 @@ if __name__ == '__main__':
 
     termPValues = {}
 
+    #Calculate the best score each dart achieved on the set, for use with beta 5
     dartMaxWeights = {}
     if whichBeta == 5:
-        for dartName in dartNames:
-            dartNameObjects = filter(lambda x: x.dartName == dartName, lineObjects)
-            weight = max([dartNameObject.weight for dartNameObject in dartNameObjects])
-            dartMaxWeights[dartName] = weight
+        dartMaxWeights = buildMaxDartWeights(dartNames, lineObjects)
 
+    #Load an ontoTerms dict for outputting term descriptions
+    ontoTerms = buildOntoTermsDict(ontoTermsFn)
+
+    count = 0
+    print("Calculating "+str(len(termIDs))+" term p-values\n")
     for termID in termIDs:
         if termID != 'UNKNOWN':
+            count+=1
+            if(count % 50 == 0): print(str(count))
             termIDObjects = filter(lambda x: x.termID == termID, lineObjects)
             weights = [termIDObject.weight for termIDObject in termIDObjects]
             genes = list(set([termIDObject.geneName for termIDObject in termIDObjects]))
@@ -882,5 +916,5 @@ if __name__ == '__main__':
                 totalSuccess = map(lambda x: dartMaxWeights[x.dartName], termIDObjects)
                 beta = sum(totalSuccess) - alpha
 
-            outFile.write(termID + "\t" + str(scipy.stats.beta.cdf(x, alpha, beta)) + "\n")
+            outFile.write(str(scipy.stats.beta.cdf(x, alpha, beta)) + "\t" + termID + "\t" + ontoTerms[termID] + "\n")
 
