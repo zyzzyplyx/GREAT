@@ -125,14 +125,13 @@ class WeightedDart(Dart):
 
     def __init__(self, **kwargs):
         self.weight = kwargs.get('weight', -1)
-        super(WeightedDart, self).__init__(**kwargs)
+        Dart.__init__(self, **kwargs)
 
     def __str__(self):
         return Dart.__str__(self) + ("\nWeight: %f" % self.weight)
 
     def __repr__(self):
-        return 'GREATx.WeightedDart(\
-                chrName=%r, name=%r, position=%r, weight=%r)' % \
+        return 'GREATx.WeightedDart(chrName=%r, name=%r, position=%r, weight=%r)' % \
                 (repr(self.chrName), repr(self.name), repr(self.position),\
                 repr(self.weight))
 
