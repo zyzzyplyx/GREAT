@@ -27,6 +27,7 @@ import sys
 import os
 import operator
 import scipy.stats
+from datetime import datetime
 
 # these are the hard-coded human chromosome names and sizes
 HUMAN_CHROMOSOMES = ['chr' + str(i) for i in range(1,23)] + ['chrX', 'chrY']
@@ -838,11 +839,12 @@ if __name__ == '__main__':
     whichBeta = int(args[8])
     ontoTermsFn = args[9]
 
+    timestamp = str(datetime.now())[-5:]
     # get data/SRFtoTerms.data
-    createRegDomsFileFromTSSs(lociFn, "/tmp/hg18.regDom.bed", cutOff)
-    overlapSelect("/tmp/hg18.regDom.bed", dartFn, "/tmp/regDom.SRF.merge", options="-mergeOutput")
-    assignWeights(cutOff, mean, sd, "/tmp/regDom.SRF.merge", "/tmp/SRF.wgt")
-    maker = AssociationMaker("/tmp/SRF.wgt", ontoToGeneFn, "/tmp/hg18.regDom.bed")
+    createRegDomsFileFromTSSs(lociFn, "/tmp/hg18.regDom."+timestamp+".bed", cutOff)
+    overlapSelect("/tmp/hg18.regDom."+timestamp+".bed", dartFn, "/tmp/regDom.SRF."+timestamp+".merge", options="-mergeOutput")
+    assignWeights(cutOff, mean, sd, "/tmp/regDom.SRF."+timestamp+".merge", "/tmp/SRF."+timestamp+".wgt")
+    maker = AssociationMaker("/tmp/SRF."+timestamp+".wgt", ontoToGeneFn, "/tmp/hg18.regDom."+timestamp+".bed")
     maker.writeOutput(SRFtoTermsFn)
 
     # # remove /tmp files
@@ -873,6 +875,7 @@ if __name__ == '__main__':
 
     count = 0
     results = []
+    correction = len(termIDs)
     print("Calculating "+str(len(termIDs))+" term p-values\n")
     for termID in termIDs:
         if termID != 'UNKNOWN':
@@ -912,6 +915,7 @@ if __name__ == '__main__':
                                        chrName=termIDObject.chrName)\
                             for termIDObject in termIDObjects]
                 beta = len(termIDObjects) * (wgtRegDom.bestWeightedDart(termTSSs, chromosomes=HUMAN_CHROMOSOMES)).weight
+            #Assumes max score is the number of darts times the weight of the heaviest dart
             elif whichBeta == 4:
                 for dartName in dartNames:
                     dartNameObjects = filter(lambda x: x.dartName == dartName, termIDObjets)
@@ -931,4 +935,5 @@ if __name__ == '__main__':
             if(int(termID) in ontoTerms): desc = ontoTerms[int(termID)]
             else: desc = "No description available"
             pval = scipy.stats.beta.cdf(x, alpha, beta)
-            if(pval > 0): results.append((pval, termID, desc))
+            if(pval > 0): results.append((pval * correction, termID, desc))
+    outFile.write("\n\n~~~~~~~~~~~~~~~FINISHED~~~~~~~~~~~~~~~")
