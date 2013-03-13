@@ -935,5 +935,9 @@ if __name__ == '__main__':
             if(int(termID) in ontoTerms): desc = ontoTerms[int(termID)]
             else: desc = "No description available"
             pval = scipy.stats.beta.cdf(x, alpha, beta)
+<<<<<<< HEAD
             if(pval > 0): results.append((pval * correction, termID, desc))
     outFile.write("\n\n~~~~~~~~~~~~~~~FINISHED~~~~~~~~~~~~~~~")
+=======
+            if(pval > 0): results.append((pval, termID, desc))
+>>>>>>> 3bbd5536b8847c53e93e3e0b3ce1f184ca2c05df
