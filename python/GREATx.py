@@ -904,6 +904,7 @@ if __name__ == '__main__':
                                        chrName=termIDObject.chrName)\
                             for termIDObject in termIDObjects]
                 beta = len(termIDObjects) * (wgtRegDom.bestWeightedDart(termTSSs, chromosomes=HUMAN_CHROMOSOMES)).weight
+            #Assumes max score is the number of darts times the weight of the heaviest dart
             elif whichBeta == 4:
                 for dartName in dartNames:
                     dartNameObjects = filter(lambda x: x.dartName == dartName, termIDObjets)

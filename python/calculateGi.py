@@ -39,16 +39,17 @@ for termID in termIDs:
                 if weightedDartObjectJ.name == weightedDartObjectI.name:
                     continue
                 if weightedDartObjectJ.chrName != weightedDartObjectI.chrName:
-                    spatialWeight = 0.0
-                else:
-                    spatialWeight = scipy.fabs(\
-                            weightedDartObjectI.position -\
-                            weightedDartObjectJ.position)
+                    continue
 
-                    numerator1 += spatialWeight*weightedDartObjectJ.weight
-                    numerator2 += spatialWeight*X_bar
-                    denom1 += len(weightedDarts)*(spatialWeight**2)            
-                    denom2 += spatialWeight            
+                if (scipy.fabs(weightedDartObjectI.position - weightedDartObjectJ.position) > 46944323): # size of the smallest chromosome
+                    spatialWeight = 0
+                else:
+                    spatialWeight = 1
+
+                numerator1 += spatialWeight*weightedDartObjectJ.weight
+                numerator2 += spatialWeight*X_bar
+                denom1 += len(weightedDarts)*(spatialWeight**2)            
+                denom2 += spatialWeight            
 
             denom2 = denom2**2
             numerator = numerator1 - numerator2
@@ -58,10 +59,14 @@ for termID in termIDs:
                 denominator = S*scipy.sqrt(\
                         (denom1 - denom2)/(len(weightedDarts) - 1))
                 if denominator == 0:
-                    ZScore = "O denom"
+                    ZScore = "0 denom"
                 else:
                     ZScore = numerator/denominator
             outFile.write(\
-                    "\t".join([termID, weightedDartObjectI.name, str(ZScore)])\
+                    "\t".join([termID,\
+                               weightedDartObjectI.name,\
+                               weightedDartObjectI.chrName,\
+                               str(weightedDartObjectI.position),\
+                               str(ZScore)])\
                     + "\n")
 
