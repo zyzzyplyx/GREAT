@@ -817,6 +817,11 @@ if __name__ == '__main__':
     #                  action="store_false", dest="verbose", default=True,
     #                  help="don't print status messages to stdout")
 
+    """
+    Example Command:
+                             Loci File                                         GeneID->Term File                                     Dart File                Dart/Gene/Weight File (overwritten)     Outfile    RegSize  Mean   StdDev   BetaFn          OntoNumber -> OntoDescription file
+    ./python/GREATx.py GREATRegDoms/ontologies/hg18/hg18.loci GREATRegDoms/ontologies/hg18/GOBiologicalProcess/ontoToGene.canon GREATRegDoms/SRF.hg18.bed         data/SRFtoTerms_small2.data         test1.out   10000     0     3333       5    GREATRegDoms/ontologies/hg18/GOBiologicalProcess/ontoTerms.canon
+    """
     (options, args) = parser.parse_args()
     if (len(args) != 10):
         parser.print_usage()
@@ -833,12 +838,12 @@ if __name__ == '__main__':
     whichBeta = int(args[8])
     ontoTermsFn = args[9]
 
-    # # get data/SRFtoTerms.data
-    # createRegDomsFileFromTSSs(lociFn, "/tmp/hg18.regDom.bed", 1000000)
-    # overlapSelect("/tmp/hg18.regDom.bed", dartFn, "/tmp/regDom.SRF.merge", options="-mergeOutput")
-    # assignWeights(cutOff, mean, sd, "/tmp/regDom.SRF.merge", "/tmp/SRF.wgt")
-    # maker = AssociationMaker("/tmp/SRF.wgt", ontoToGeneFn, "/tmp/hg18.regDom.bed")
-    # maker.writeOutput(SRFtoTermsFn)
+    # get data/SRFtoTerms.data
+    createRegDomsFileFromTSSs(lociFn, "/tmp/hg18.regDom.bed", 1000000)
+    overlapSelect("/tmp/hg18.regDom.bed", dartFn, "/tmp/regDom.SRF.merge", options="-mergeOutput")
+    assignWeights(cutOff, mean, sd, "/tmp/regDom.SRF.merge", "/tmp/SRF.wgt")
+    maker = AssociationMaker("/tmp/SRF.wgt", ontoToGeneFn, "/tmp/hg18.regDom.bed")
+    maker.writeOutput(SRFtoTermsFn)
 
     # # remove /tmp files
     # os.system("rm /tmp/hg18.regDom.bed /tmp/regDom.SRF.merge /tmp/SRF.wgt")
@@ -915,5 +920,8 @@ if __name__ == '__main__':
                 totalSuccess = map(lambda x: dartMaxWeights[x.dartName], termIDObjects)
                 beta = sum(totalSuccess) - alpha
 
-            outFile.write(str(scipy.stats.beta.cdf(x, alpha, beta)) + "\t" + termID + "\t" + ontoTerms[termID] + "\n")
+            if(termID in ontoTerms): desc = ontoTerms[termID]
+            else: desc = "No description available"
+
+            outFile.write(str(scipy.stats.beta.cdf(x, alpha, beta)) + "\t" + termID + "\t" + desc + "\n")
 
