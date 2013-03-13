@@ -549,7 +549,7 @@ def buildOntoTermsDict(ontoTermsFn):
     ontoTerms = {}
     for line in open(ontoTermsFn):
         line = line.split('\t')
-        ontoTerms[line[0].split(':')[1]] = line[1]
+        ontoTerms[int(line[0].split(':')[1])] = line[1]
     return ontoTerms
 
 def buildMaxDartWeights(dartNames, lineObjects):
@@ -839,7 +839,7 @@ if __name__ == '__main__':
     ontoTermsFn = args[9]
 
     # get data/SRFtoTerms.data
-    createRegDomsFileFromTSSs(lociFn, "/tmp/hg18.regDom.bed", 1000000)
+    createRegDomsFileFromTSSs(lociFn, "/tmp/hg18.regDom.bed", cutOff)
     overlapSelect("/tmp/hg18.regDom.bed", dartFn, "/tmp/regDom.SRF.merge", options="-mergeOutput")
     assignWeights(cutOff, mean, sd, "/tmp/regDom.SRF.merge", "/tmp/SRF.wgt")
     maker = AssociationMaker("/tmp/SRF.wgt", ontoToGeneFn, "/tmp/hg18.regDom.bed")
@@ -872,11 +872,19 @@ if __name__ == '__main__':
     ontoTerms = buildOntoTermsDict(ontoTermsFn)
 
     count = 0
+    results = []
     print("Calculating "+str(len(termIDs))+" term p-values\n")
     for termID in termIDs:
         if termID != 'UNKNOWN':
+
             count+=1
-            if(count % 50 == 0): print(str(count))
+            if(count % 50 == 0):
+                print(str(count))
+                results = sorted(results, key=lambda x: x[0])[0:30]
+                outFile = open(outFn, 'w')
+                for r in results:
+                    outFile.write(str(r[0]) + "\t" + r[1] + "\t" + r[2] + "\n")
+
             termIDObjects = filter(lambda x: x.termID == termID, lineObjects)
             weights = [termIDObject.weight for termIDObject in termIDObjects]
             genes = list(set([termIDObject.geneName for termIDObject in termIDObjects]))
@@ -921,8 +929,7 @@ if __name__ == '__main__':
                 totalSuccess = map(lambda x: dartMaxWeights[x.dartName], termIDObjects)
                 beta = sum(totalSuccess) - alpha
 
-            if(termID in ontoTerms): desc = ontoTerms[termID]
+            if(int(termID) in ontoTerms): desc = ontoTerms[int(termID)]
             else: desc = "No description available"
-
-            outFile.write(str(scipy.stats.beta.cdf(x, alpha, beta)) + "\t" + termID + "\t" + desc + "\n")
-
+            pval = scipy.stats.beta.cdf(x, alpha, beta)
+            if(pval > 0): results.append((pval, termID, desc))
